@@ -9,7 +9,6 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Either (isLeft, isRight)
 import Brightsidebudget.Account as A
-import Brightsidebudget.Data (QName(..), Account(..))
 
 accountTests :: TestTree
 accountTests = testGroup "Account" [qNameTests]

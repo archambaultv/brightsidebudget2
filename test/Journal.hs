@@ -6,8 +6,7 @@ where
 import Test.Tasty
 import Test.Tasty.HUnit
 import Control.Monad.Except (runExceptT)
-import Brightsidebudget.Journal (loadJournal)
-import Brightsidebudget.Data (JournalConfig(..), Journal(..))
+import Brightsidebudget (JournalConfig(..), Journal(..), loadJournal)
 
 journalTests :: TestTree
 journalTests = testGroup "Journal" [loadJournalTests]
