@@ -1,0 +1,9 @@
+No txn,Date,Compte,Montant,Commentaire,Description du relevé,Date du relevé
+1,2021-01-01,Compte courant,2500.01,,,
+1,2021-01-01,Épargne,15000,,,
+1,2021-01-01,Carte de crédit,-1500,,,
+1,2021-01-01,Hypothèque,-300000,,,
+1,2021-01-01,Maison,450000,,,
+1,2021-01-01,Solde d'ouverture,-166000.01,,,
+2,2021-01-02,Nourriture,40,,Super marché,
+2,2021-01-02,Compte courant,-40,,Super marché,

@@ -1,0 +1,6 @@
+.stack-work/
+*~
+brightsidebudget2.cabal
+*.lock
+.DS_Store
+brightsidebudget2-test.prof
