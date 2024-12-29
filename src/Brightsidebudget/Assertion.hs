@@ -14,7 +14,7 @@ import Brightsidebudget.Calendar (dateAsDay, dayAsDate)
 csvAssertionToAssertion :: CsvAssertion -> Either Text Assertion
 csvAssertionToAssertion (CsvAssertion {csvbaDate1 = d1, csvbaAccount = acc, csvbaAmount = amt, csvbaDate2 = d2}) = do
     d1' <- dateAsDay d1
-    d2' <- sequence $ dateAsDay <$> d2
+    d2' <- traverse dateAsDay d2
     case d2' of
         Nothing -> pure $ Assertion (BalanceAssertion d1') (textToQname acc) (doubleToAmount amt)
         Just d2'' -> pure $ Assertion (FlowAssertion d1' d2'') (textToQname acc) (doubleToAmount amt)

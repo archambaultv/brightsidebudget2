@@ -12,14 +12,21 @@ module Brightsidebudget.Account
     shortNameOf,
     csvAccountToAccount,
     accountToCsvAccount,
-    validateAccount
+    validateAccount,
+    loadAccounts
 )
 where
 
 import Data.Text (Text)
 import Data.List (isPrefixOf, isSuffixOf)
+import qualified Data.HashSet as HS
+import Data.Foldable (traverse_)
+import Control.Monad.Except (ExceptT, throwError, liftEither)
 import qualified Data.Text as T
+import qualified Data.Vector as V
+import Data.Csv (decodeByName)
 import Brightsidebudget.Data (QName, CsvAccount(..), Account(..))
+import Brightsidebudget.Utils (loadFile)
 
 validateQname :: QName -> Either Text ()
 validateQname [] = Left "QName cannot be empty"
@@ -72,3 +79,25 @@ validateAccount (Account {aName = name, aNumber = num}) = do
     if num < 0
     then Left "Account number must be non-negative"
     else Right ()
+
+validateAccounts :: [Account] -> Either Text ()
+validateAccounts accs = do
+    traverse_ validateAccount accs
+    let xs = HS.fromList $ map aName accs
+    if length xs == length accs
+    then Right ()
+    else Left "Duplicate account names"
+
+loadCsvAccounts :: FilePath -> ExceptT Text IO [CsvAccount]
+loadCsvAccounts filePath = do
+    csvData <- loadFile filePath
+    case decodeByName csvData of
+        Left err -> throwError $ T.pack err
+        Right (_, v) -> pure $ V.toList v
+
+loadAccounts :: FilePath -> ExceptT Text IO [Account]
+loadAccounts filePath = do
+    csvAccounts <- loadCsvAccounts filePath
+    let accs = map csvAccountToAccount csvAccounts
+    liftEither $ validateAccounts accs
+    pure accs

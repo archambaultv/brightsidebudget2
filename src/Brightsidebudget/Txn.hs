@@ -3,7 +3,8 @@
 module Brightsidebudget.Txn
 (
     csvTxnsToTxns,
-    validateTxn
+    validateTxn,
+    loadTxns
 )
 where
 
@@ -11,16 +12,21 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.List (groupBy, sortBy)
 import Data.Ord (comparing)
+import Data.Foldable (traverse_)
+import qualified Data.Vector as V
+import Data.Csv (decodeByName)
+import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Data (Txn(..), Posting(..), CsvTxn(..), QName)
 import Brightsidebudget.Account (validateQname, textToQname, shortNameOf)
 import Brightsidebudget.Amount (doubleToAmount)
 import Brightsidebudget.Calendar (dateAsDay)
+import Brightsidebudget.Utils (loadFile)
 
 csvTxnsToTxns :: [CsvTxn] -> Either Text [Txn]
 csvTxnsToTxns csvTnxs =
     let byId = groupBy (\a b -> csvtId a == csvtId b)
              $ sortBy (comparing csvtId) csvTnxs
-    in sequence $ map csvTxnToTxn' byId
+    in traverse csvTxnToTxn' byId
 
 csvTxnToTxn' :: [CsvTxn] -> Either Text Txn
 csvTxnToTxn' [] = Left $ T.pack "empty posting list"
@@ -33,7 +39,7 @@ csvTxnToTxn' csvTnxs@(CsvTxn {csvtId = ident, csvtDate = date}:_) =
     in do
         sameDate
         d <- dateAsDay date
-        ps <- sequence $ map csvPostingToPosting csvTnxs
+        ps <- traverse csvPostingToPosting csvTnxs
         pure $ Txn {txnId = ident, txnDate = d, txnPostings = ps}
 
 csvPostingToPosting :: CsvTxn -> Either Text Posting
@@ -55,7 +61,25 @@ validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}
                  else Right ()
     in do
         txnSum
-        sequence_ $ map (validateQname . pAccount) postings
-        fullQn <- sequence $ map (flip shortNameOf knownQn . pAccount) postings
+        traverse_ (validateQname . pAccount) postings
+        fullQn <- traverse (flip shortNameOf knownQn . pAccount) postings
         let ps = zipWith (\p qn -> p {pAccount = qn}) postings fullQn
         pure $ Txn ident date ps
+
+loadCsvTxns :: FilePath -> ExceptT Text IO [CsvTxn]
+loadCsvTxns fp = do
+    csvTxns <- loadFile fp
+    case decodeByName csvTxns of
+        Left err -> throwError $ T.pack err
+        Right (_, v) -> pure $ V.toList v
+
+loadAllCsvTxns :: [FilePath] -> ExceptT Text IO [CsvTxn]
+loadAllCsvTxns fps = do
+    csvTxns <- traverse loadCsvTxns fps
+    pure $ concat csvTxns
+
+loadTxns :: [QName] -> [FilePath] -> ExceptT Text IO [Txn]
+loadTxns knownQn fps = do
+    csvTxns <- loadAllCsvTxns fps
+    txns <- liftEither $ csvTxnsToTxns csvTxns
+    liftEither $ traverse (validateTxn knownQn) txns

@@ -2,27 +2,30 @@
 
 module Brightsidebudget.Data
     ( 
-    QName,
     Amount,
+    QName,
     Account(..),
     CsvAccount(..),
     Txn(..),
-    CsvTxn(..),
     Posting(..),
+    CsvTxn(..),
     AssertionType(..),
     Assertion(..),
     CsvAssertion(..),
     BudgetTarget(..),
     BudgetFrequency(..),
+    CsvBudgetTarget(..),
+    Journal(..),
+    JournalConfig(..),
     ) where
 
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import Data.Csv (FromNamedRecord(..), ToNamedRecord(..), DefaultOrdered(..), namedRecord, (.=), header, (.:))
 
-type QName = [Text]
-
 type Amount = Integer
+
+type QName = [Text]
 
 data Account = Account {
     aName :: QName,
@@ -138,8 +141,15 @@ instance DefaultOrdered CsvBudgetTarget where
 data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show)
 
 data Journal = Journal {
-    jAccounts :: [QName],
+    jAccounts :: [Account],
     jTxns :: [Txn],
     jAssertions :: [Assertion],
     jTargets :: [BudgetTarget]
+} deriving (Show)
+
+data JournalConfig = JournalConfig {
+    jcAccounts :: FilePath,
+    jcTxns :: [FilePath],
+    jcAssertions :: FilePath,
+    jcTargets :: FilePath
 } deriving (Show)

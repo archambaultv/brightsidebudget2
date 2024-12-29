@@ -24,6 +24,11 @@ dependencies:
 - text
 - time
 - cassava
+- directory
+- bytestring
+- mtl
+- vector
+- unordered-containers
 
 ghc-options:
 - -Wall
