@@ -1,0 +1,4 @@
+.stack-work/
+*~
+brightsidebudget2.cabal
+*.lock
