@@ -13,9 +13,10 @@ import Data.Time.Calendar (Day)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
 
 dateAsDay :: Text -> Either Text Day
-dateAsDay dt = 
+dateAsDay dt | T.null dt = error "empty date"
+dateAsDay dt =
     case parseTimeM False defaultTimeLocale "%Y-%m-%d" (T.unpack dt) of
-        Nothing -> Left $ T.pack $ "invalid date format " ++ T.unpack dt
+        Nothing -> Left $ "invalid date format " <> dt
         Just d -> Right d
 
 dayAsDate :: Day -> Text

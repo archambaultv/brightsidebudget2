@@ -29,6 +29,7 @@ dependencies:
 - mtl
 - vector
 - unordered-containers
+- utf8-string
 
 ghc-options:
 - -Wall
@@ -65,3 +66,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - brightsidebudget2
+    - tasty
+    - tasty-hunit

@@ -21,6 +21,7 @@ module Brightsidebudget.Data
 
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
+import Data.ByteString.UTF8 (ByteString, fromString)
 import Data.Csv (FromNamedRecord(..), ToNamedRecord(..), DefaultOrdered(..), namedRecord, (.=), header, (.:))
 
 type Amount = Integer
@@ -37,13 +38,17 @@ data CsvAccount = CsvAccount {
     csvaNumber :: Int
 } deriving (Show)
 
+fieldCompte, fieldNumero :: ByteString
+fieldCompte = fromString "Compte"
+fieldNumero = fromString "Numéro"  -- wihtout fromString, the UTF8 conversion is not done properly
+
 instance FromNamedRecord CsvAccount where
-    parseNamedRecord m = CsvAccount <$> m .: "Compte" <*> m .: "Numéro"
+    parseNamedRecord m = CsvAccount <$> m .: fieldCompte <*> m .: fieldNumero
 instance ToNamedRecord CsvAccount where
     toNamedRecord (CsvAccount name number) = namedRecord [
-        "Compte" .= name, "Numéro" .= number]
+        fieldCompte .= name, fieldNumero .= number]
 instance DefaultOrdered CsvAccount where
-    headerOrder _ = header ["Compte", "Numéro"]
+    headerOrder _ = header [fieldCompte, fieldNumero]
 
 data Txn = Txn {
     txnId :: Int,
@@ -69,15 +74,19 @@ data CsvTxn = CsvTxn {
     csvtStmtDate :: Text
 } deriving (Show)
 
+stmt_desc, stmt_date :: ByteString
+stmt_desc = fromString "Description du relevé"
+stmt_date = fromString "Date du relevé"
+
 instance FromNamedRecord CsvTxn where
     parseNamedRecord m = CsvTxn <$> m .: "No txn" <*> m .: "Date" <*> m .: "Compte" 
-                       <*> m .: "Montant" <*> m .: "Commentaire" <*> m .: "Description du relevé" <*> m .: "Date du relevé"
+                       <*> m .: "Montant" <*> m .: "Commentaire" <*> m .: stmt_desc <*> m .: stmt_date
 instance ToNamedRecord CsvTxn where
     toNamedRecord (CsvTxn ident date acct amt cmt sdesc sdate) = namedRecord [
         "No txn" .= ident, "Date" .= date, "Compte" .= acct, "Montant" .= amt,
-        "Commentaire" .= cmt, "Description du relevé" .= sdesc, "Date du relevé" .= sdate]
+        "Commentaire" .= cmt, stmt_desc .= sdesc, stmt_date .= sdate]
 instance DefaultOrdered CsvTxn where
-    headerOrder _ = header ["No txn", "Date", "Compte", "Montant", "Commentaire", "Description du relevé", "Date du relevé"]
+    headerOrder _ = header ["No txn", "Date", "Compte", "Montant", "Commentaire", stmt_desc, stmt_date]
 
 
 data AssertionType = BalanceAssertion Day
@@ -94,7 +103,7 @@ data CsvAssertion = CsvAssertion {
     csvbaDate1 :: Text,
     csvbaAccount :: Text,
     csvbaAmount :: Double,
-    csvbaDate2 :: Maybe Text
+    csvbaDate2 :: Text
 } deriving (Show)
 
 instance FromNamedRecord CsvAssertion where
@@ -112,7 +121,7 @@ data BudgetTarget = BudgetTarget {
     btStart :: Day,
     btFrequency :: BudgetFrequency,
     btInterval :: Int,
-    btUntil :: Day
+    btUntil :: Maybe Day
 } deriving (Show)
 
 data CsvBudgetTarget = CsvBudgetTarget {
@@ -150,6 +159,6 @@ data Journal = Journal {
 data JournalConfig = JournalConfig {
     jcAccounts :: FilePath,
     jcTxns :: [FilePath],
-    jcAssertions :: FilePath,
-    jcTargets :: FilePath
+    jcAssertions :: Maybe FilePath,
+    jcTargets :: Maybe FilePath
 } deriving (Show)

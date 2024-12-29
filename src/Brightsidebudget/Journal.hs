@@ -19,8 +19,8 @@ loadJournal (JournalConfig {jcAccounts = accs, jcAssertions = as, jcTxns = txns,
     accs' <- loadAccounts accs
     let fullQn = fmap aName accs'
     txns' <- loadTxns fullQn txns
-    as' <- loadAssertions fullQn as
-    targets' <- loadBudgetTargets fullQn targets
+    as' <-  maybe (pure []) (loadAssertions fullQn) as
+    targets' <-  maybe (pure []) (loadBudgetTargets fullQn) targets
     pure $ Journal accs' txns' as' targets'
 
 saveJournal :: FilePath -> Journal -> JournalConfig -> IO ()

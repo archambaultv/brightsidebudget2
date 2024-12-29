@@ -24,7 +24,9 @@ import Brightsidebudget.Calendar (dateAsDay, dayAsDate)
 fromCsvBudgetTarget :: CsvBudgetTarget -> Either Text BudgetTarget
 fromCsvBudgetTarget (CsvBudgetTarget {csvbtAccount = acc, csvbtAmount = amt, csvbtComment = cmt, csvbtStart = start, csvbtFrequency = freq, csvbtInterval = interval, csvbtUntil = until_}) = do
     start' <- dateAsDay start
-    until' <- dateAsDay until_
+    until' <- if T.null $ T.strip until_
+                then pure Nothing
+                else Just <$> dateAsDay until_
     freq' <- case freq of
         "Hebdomadaire" -> Right BWeekly
         "Mensuel" -> Right BMonthly
@@ -38,13 +40,16 @@ toCsvBudgetTarget (BudgetTarget {btAccount = acc, btAmount = amt, btComment = cm
             BWeekly -> "Hebdomadaire"
             BMonthly -> "Mensuel"
             BYearly -> "Annuel"
-    in CsvBudgetTarget (qnameToText acc) (amountToDouble amt) cmt (dayAsDate start) freqText interval (dayAsDate until_)
+        until' = maybe "" dayAsDate until_
+    in CsvBudgetTarget (qnameToText acc) (amountToDouble amt) cmt (dayAsDate start) freqText interval until'
 
 validateBudgetTarget :: [QName] -> BudgetTarget -> Either Text BudgetTarget
 validateBudgetTarget knownQn (BudgetTarget {btAccount = acc, btAmount = amt, btComment = cmt, btStart = start, btFrequency = freq, btInterval = interval, btUntil = until_}) = do
     validateQname acc
     fullQn <- shortNameOf acc knownQn
-    when (start > until_) (Left "Start date is after end date")
+    case until_ of
+        Just duntil_ -> when (start > duntil_) (Left "Start date is after end date")
+        Nothing -> pure ()
     pure $ BudgetTarget fullQn amt cmt start freq interval until_
 
 loadCsvBudgetTargets :: FilePath -> ExceptT Text IO [CsvBudgetTarget]

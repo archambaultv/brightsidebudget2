@@ -1,0 +1,18 @@
+Compte,Numéro
+Actifs,1000
+Actifs:Compte courant,1005
+Actifs:Épargne,1006
+Actifs:Maison,1200
+Passifs,2000
+Passifs:Carte de crédit,2005
+Passifs:Dette à long terme,2050
+Passifs:Dette à long terme:Hypothèque,2051
+Capitaux propres,3000
+Capitaux propres:Solde d'ouverture,3005
+Revenus,4000
+Revenus:Salaire,4005
+Dépenses,5000
+Dépenses:Services publics,5005
+Dépenses:Loyer,5006
+Dépenses:Nourriture,5007
+Dépenses:Autres,5008
