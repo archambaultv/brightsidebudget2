@@ -61,7 +61,7 @@ data Posting = Posting {
     pAmount :: Amount,
     pComment :: Text,
     pStmtDesc :: Text,
-    pStmtDate :: Day
+    pStmtDate :: Maybe Day
 } deriving (Show)
 
 data CsvTxn = CsvTxn {
@@ -134,17 +134,20 @@ data CsvBudgetTarget = CsvBudgetTarget {
     csvbtUntil :: Text
 } deriving (Show)
 
--- Compte,Commentaire,Montant,Date de début,Fréquence,Intervalle,Date de fin
+start_date, frequency :: ByteString
+start_date = fromString "Date de début"
+frequency = fromString "Fréquence"
+
 instance FromNamedRecord CsvBudgetTarget where
     parseNamedRecord m = CsvBudgetTarget <$> m .: "Compte" <*> m .: "Montant" <*> m .: "Commentaire" 
-                                         <*> m .: "Date de début" <*> m .: "Fréquence" <*> m .: "Intervalle"
+                                         <*> m .: start_date <*> m .: frequency <*> m .: "Intervalle"
                                          <*> m .: "Date de fin"
 instance ToNamedRecord CsvBudgetTarget where
     toNamedRecord (CsvBudgetTarget acct cmt amt start freq interval until_) = namedRecord [
-        "Compte" .= acct, "Montant" .= amt, "Commentaire" .= cmt, "Date de début" .= start,
-        "Fréquence" .= freq, "Intervalle" .= interval, "Date de fin" .= until_]
+        "Compte" .= acct, "Montant" .= amt, "Commentaire" .= cmt, start_date .= start,
+        frequency .= freq, "Intervalle" .= interval, "Date de fin" .= until_]
 instance DefaultOrdered CsvBudgetTarget where
-    headerOrder _ = header ["Compte", "Montant", "Commentaire", "Date de début", "Fréquence", "Intervalle", "Date de fin"]
+    headerOrder _ = header ["Compte", "Montant", "Commentaire", start_date, frequency, "Intervalle", "Date de fin"]
 
 
 data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show)

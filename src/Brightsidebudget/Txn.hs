@@ -27,21 +27,23 @@ fromCsvTxns :: [CsvTxn] -> Either Text [Txn]
 fromCsvTxns csvTnxs =
     let byId = groupBy (\a b -> csvtId a == csvtId b)
              $ sortBy (comparing csvtId) csvTnxs
-    in traverse csvTxnToTxn' byId
+    in traverse fromCsvTxn' byId
 
-csvTxnToTxn' :: [CsvTxn] -> Either Text Txn
-csvTxnToTxn' [] = Left $ T.pack "empty posting list"
-csvTxnToTxn' csvTnxs@(CsvTxn {csvtId = ident, csvtDate = date}:_) =
+fromCsvTxn' :: [CsvTxn] -> Either Text Txn
+fromCsvTxn' [] = Left $ T.pack "empty posting list"
+fromCsvTxn' csvTnxs@(CsvTxn {csvtId = ident, csvtDate = date}:_) =
     let dates = map csvtDate csvTnxs        
     in do
         unless (all (== date) dates) (Left $ T.pack $ "mismatched dates for txn " ++ show ident)
         d <- dateAsDay date
-        ps <- traverse csvPostingToPosting csvTnxs
+        ps <- traverse fromCsvPosting csvTnxs
         pure $ Txn {txnId = ident, txnDate = d, txnPostings = ps}
 
-csvPostingToPosting :: CsvTxn -> Either Text Posting
-csvPostingToPosting (CsvTxn {csvtAccount = acct, csvtAmount = amt, csvtComment = cmt, csvtStmtDesc = sdesc, csvtStmtDate = sdate}) = do
-    sd <- dateAsDay sdate
+fromCsvPosting :: CsvTxn -> Either Text Posting
+fromCsvPosting (CsvTxn {csvtAccount = acct, csvtAmount = amt, csvtComment = cmt, csvtStmtDesc = sdesc, csvtStmtDate = sdate}) = do
+    sd <- if T.null $ T.strip sdate
+          then pure Nothing
+          else Just <$> dateAsDay sdate
     pure $ Posting {
         pAccount = textToQname acct,
         pAmount = doubleToAmount amt,
