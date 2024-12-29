@@ -88,20 +88,52 @@ data Assertion = Assertion {
 } deriving (Show)
 
 data CsvAssertion = CsvAssertion {
-    csvbaDate1 :: Day,
+    csvbaDate1 :: Text,
     csvbaAccount :: Text,
     csvbaAmount :: Double,
-    csvbaDate2 :: Maybe Day
+    csvbaDate2 :: Maybe Text
 } deriving (Show)
 
+instance FromNamedRecord CsvAssertion where
+    parseNamedRecord m = CsvAssertion <$> m .: "Date" <*> m .: "Compte" <*> m .: "Montant" <*> m .: "Date de fin pour flux"
+instance ToNamedRecord CsvAssertion where
+    toNamedRecord (CsvAssertion date acct amt mdate) = namedRecord [
+        "Date" .= date, "Compte" .= acct, "Montant" .= amt, "Date de fin pour flux" .= mdate]
+instance DefaultOrdered CsvAssertion where
+    headerOrder _ = header ["Date", "Compte", "Montant", "Date de fin pour flux"]
+
 data BudgetTarget = BudgetTarget {
-    btStart :: Day,
     btAccount :: QName,
     btAmount :: Amount,
+    btComment :: Text,
+    btStart :: Day,
     btFrequency :: BudgetFrequency,
     btInterval :: Int,
     btUntil :: Day
 } deriving (Show)
+
+data CsvBudgetTarget = CsvBudgetTarget {
+    csvbtAccount :: Text,
+    csvbtAmount :: Double,
+    csvbtComment :: Text,
+    csvbtStart :: Text,
+    csvbtFrequency :: Text,
+    csvbtInterval :: Int,
+    csvbtUntil :: Text
+} deriving (Show)
+
+-- Compte,Commentaire,Montant,Date de début,Fréquence,Intervalle,Date de fin
+instance FromNamedRecord CsvBudgetTarget where
+    parseNamedRecord m = CsvBudgetTarget <$> m .: "Compte" <*> m .: "Montant" <*> m .: "Commentaire" 
+                                         <*> m .: "Date de début" <*> m .: "Fréquence" <*> m .: "Intervalle"
+                                         <*> m .: "Date de fin"
+instance ToNamedRecord CsvBudgetTarget where
+    toNamedRecord (CsvBudgetTarget acct cmt amt start freq interval until_) = namedRecord [
+        "Compte" .= acct, "Montant" .= amt, "Commentaire" .= cmt, "Date de début" .= start,
+        "Fréquence" .= freq, "Intervalle" .= interval, "Date de fin" .= until_]
+instance DefaultOrdered CsvBudgetTarget where
+    headerOrder _ = header ["Compte", "Montant", "Commentaire", "Date de début", "Fréquence", "Intervalle", "Date de fin"]
+
 
 data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show)
 

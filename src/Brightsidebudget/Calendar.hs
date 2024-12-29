@@ -1,7 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Brightsidebudget.Calendar
-    ( dateAsDay
+    ( 
+        dateAsDay,
+        dayAsDate
     )
 where
 
@@ -15,3 +17,6 @@ dateAsDay dt =
     case parseTimeM False defaultTimeLocale "%Y-%m-%d" (T.unpack dt) of
         Nothing -> Left $ T.pack $ "invalid date format " ++ T.unpack dt
         Just d -> Right d
+
+dayAsDate :: Day -> Text
+dayAsDate = T.pack . show
