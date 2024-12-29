@@ -10,8 +10,8 @@ module Brightsidebudget.Account
     isParentOf,
     isChildOf,
     shortNameOf,
-    csvAccountToAccount,
-    accountToCsvAccount,
+    fromCsvAccount,
+    toCsvAccount,
     validateAccount,
     loadAccounts
 )
@@ -65,12 +65,12 @@ shortNameOf qn qns =
         [x] -> Right x
         _ -> Left $ T.pack $ "multiple matching QNames" ++ show (map qnameToText xs)
 
-csvAccountToAccount :: CsvAccount -> Account
-csvAccountToAccount (CsvAccount {csvaName = name, csvaNumber = num}) =
+fromCsvAccount :: CsvAccount -> Account
+fromCsvAccount (CsvAccount {csvaName = name, csvaNumber = num}) =
     Account {aName = textToQname name, aNumber = num}
 
-accountToCsvAccount :: Account -> CsvAccount
-accountToCsvAccount (Account {aName = name, aNumber = num}) =
+toCsvAccount :: Account -> CsvAccount
+toCsvAccount (Account {aName = name, aNumber = num}) =
     CsvAccount {csvaName = qnameToText name, csvaNumber = num}
 
 validateAccount :: Account -> Either Text ()
@@ -98,6 +98,6 @@ loadCsvAccounts filePath = do
 loadAccounts :: FilePath -> ExceptT Text IO [Account]
 loadAccounts filePath = do
     csvAccounts <- loadCsvAccounts filePath
-    let accs = map csvAccountToAccount csvAccounts
+    let accs = map fromCsvAccount csvAccounts
     liftEither $ validateAccounts accs
     pure accs

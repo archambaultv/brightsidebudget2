@@ -2,7 +2,7 @@
 
 module Brightsidebudget.Txn
 (
-    csvTxnsToTxns,
+    fromCsvTxns,
     validateTxn,
     loadTxns
 )
@@ -15,6 +15,7 @@ import Data.Ord (comparing)
 import Data.Foldable (traverse_)
 import qualified Data.Vector as V
 import Data.Csv (decodeByName)
+import Control.Monad (unless, when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Data (Txn(..), Posting(..), CsvTxn(..), QName)
 import Brightsidebudget.Account (validateQname, textToQname, shortNameOf)
@@ -22,8 +23,8 @@ import Brightsidebudget.Amount (doubleToAmount)
 import Brightsidebudget.Calendar (dateAsDay)
 import Brightsidebudget.Utils (loadFile)
 
-csvTxnsToTxns :: [CsvTxn] -> Either Text [Txn]
-csvTxnsToTxns csvTnxs =
+fromCsvTxns :: [CsvTxn] -> Either Text [Txn]
+fromCsvTxns csvTnxs =
     let byId = groupBy (\a b -> csvtId a == csvtId b)
              $ sortBy (comparing csvtId) csvTnxs
     in traverse csvTxnToTxn' byId
@@ -31,13 +32,9 @@ csvTxnsToTxns csvTnxs =
 csvTxnToTxn' :: [CsvTxn] -> Either Text Txn
 csvTxnToTxn' [] = Left $ T.pack "empty posting list"
 csvTxnToTxn' csvTnxs@(CsvTxn {csvtId = ident, csvtDate = date}:_) =
-    let dates = map csvtDate csvTnxs
-        sameDate = if all (== date) dates
-                   then Right ()
-                   else Left $ T.pack $ "mismatched dates for txn " ++ show ident
-        
+    let dates = map csvtDate csvTnxs        
     in do
-        sameDate
+        unless (all (== date) dates) (Left $ T.pack $ "mismatched dates for txn " ++ show ident)
         d <- dateAsDay date
         ps <- traverse csvPostingToPosting csvTnxs
         pure $ Txn {txnId = ident, txnDate = d, txnPostings = ps}
@@ -56,11 +53,9 @@ csvPostingToPosting (CsvTxn {csvtAccount = acct, csvtAmount = amt, csvtComment =
 validateTxn :: [QName] -> Txn -> Either Text Txn
 validateTxn _ (Txn _ _ []) = Left "txn has no postings"
 validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}) =
-    let txnSum = if (sum $ map pAmount postings) /= 0
-                 then Left $ T.pack $ "txn " ++ show ident ++ " does not balance"
-                 else Right ()
-    in do
-        txnSum
+    let txnSum = sum $ map pAmount postings
+    in do 
+        when (txnSum /= 0) (Left $ T.pack $ "txn " ++ show ident ++ " does not balance")
         traverse_ (validateQname . pAccount) postings
         fullQn <- traverse (flip shortNameOf knownQn . pAccount) postings
         let ps = zipWith (\p qn -> p {pAccount = qn}) postings fullQn
@@ -81,5 +76,5 @@ loadAllCsvTxns fps = do
 loadTxns :: [QName] -> [FilePath] -> ExceptT Text IO [Txn]
 loadTxns knownQn fps = do
     csvTxns <- loadAllCsvTxns fps
-    txns <- liftEither $ csvTxnsToTxns csvTxns
+    txns <- liftEither $ fromCsvTxns csvTxns
     liftEither $ traverse (validateTxn knownQn) txns
