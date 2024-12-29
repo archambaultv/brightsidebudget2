@@ -9,12 +9,12 @@ module Brightsidebudget.Account
     parent,
     isParentOf,
     isChildOf,
-    short_name_of
+    shortNameOf
 )
 where
 
 import Data.Text (Text)
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, isSuffixOf)
 import qualified Data.Text as T
 import Brightsidebudget.Data (QName)
 
@@ -47,10 +47,10 @@ isParentOf p c = isPrefixOf p c && length p < length c
 isChildOf :: QName -> QName -> Bool
 isChildOf = flip isParentOf
 
-short_name_of :: QName -> [QName] -> Either Text QName
-short_name_of qn qns =
+shortNameOf :: QName -> [QName] -> Either Text QName
+shortNameOf qn qns =
     let xs = filter (isSuffixOf qn) qns
     in case xs of
-        [] -> Left $ "no matching QName for " ++ show (qnameToText qn)
+        [] -> Left $ T.pack $ "no matching QName for " ++ show (qnameToText qn)
         [x] -> Right x
-        _ -> Left $ "multiple matching QNames" ++ show (map qnameToText xs)
+        _ -> Left $ T.pack $ "multiple matching QNames" ++ show (map qnameToText xs)
