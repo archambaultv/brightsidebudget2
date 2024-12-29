@@ -1,23 +1,24 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Brightsidebudget.Data
     ( 
     QName,
     Amount,
+    Account(..),
+    CsvAccount(..),
     Txn(..),
+    CsvTxn(..),
     Posting(..),
     AssertionType(..),
-    BAssertion(..),
-    BTarget(..),
-    BFrequency(..),
-    CsvAccountHeader(..),
-    CsvTxn(..),
-    CsvTxnHeader(..),
-    CsvBAssertion(..),
-    CsvAssertionHeader(..),
-    CsvBTargetHeader(..)
+    Assertion(..),
+    CsvAssertion(..),
+    BudgetTarget(..),
+    BudgetFrequency(..),
     ) where
 
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
+import Data.Csv (FromNamedRecord(..), ToNamedRecord(..), DefaultOrdered(..), namedRecord, (.=), header, (.:))
 
 type QName = [Text]
 
@@ -27,6 +28,19 @@ data Account = Account {
     aName :: QName,
     aNumber :: Int
 } deriving (Show)
+
+data CsvAccount = CsvAccount {
+    csvaName :: Text,
+    csvaNumber :: Int
+} deriving (Show)
+
+instance FromNamedRecord CsvAccount where
+    parseNamedRecord m = CsvAccount <$> m .: "Compte" <*> m .: "Numéro"
+instance ToNamedRecord CsvAccount where
+    toNamedRecord (CsvAccount name number) = namedRecord [
+        "Compte" .= name, "Numéro" .= number]
+instance DefaultOrdered CsvAccount where
+    headerOrder _ = header ["Compte", "Numéro"]
 
 data Txn = Txn {
     txnId :: Int,
@@ -44,75 +58,56 @@ data Posting = Posting {
 
 data CsvTxn = CsvTxn {
     csvtId :: Int,
-    csvtDate :: Day,
+    csvtDate :: Text,
     csvtAccount :: Text,
     csvtAmount :: Double,
     csvtComment :: Text,
     csvtStmtDesc :: Text,
-    csvtStmtDate :: Day
+    csvtStmtDate :: Text
 } deriving (Show)
+
+instance FromNamedRecord CsvTxn where
+    parseNamedRecord m = CsvTxn <$> m .: "No txn" <*> m .: "Date" <*> m .: "Compte" 
+                       <*> m .: "Montant" <*> m .: "Commentaire" <*> m .: "Description du relevé" <*> m .: "Date du relevé"
+instance ToNamedRecord CsvTxn where
+    toNamedRecord (CsvTxn ident date acct amt cmt sdesc sdate) = namedRecord [
+        "No txn" .= ident, "Date" .= date, "Compte" .= acct, "Montant" .= amt,
+        "Commentaire" .= cmt, "Description du relevé" .= sdesc, "Date du relevé" .= sdate]
+instance DefaultOrdered CsvTxn where
+    headerOrder _ = header ["No txn", "Date", "Compte", "Montant", "Commentaire", "Description du relevé", "Date du relevé"]
+
 
 data AssertionType = BalanceAssertion Day
                    | FlowAssertion Day Day
     deriving (Show, Eq)
 
-data BAssertion = BAssertion {
+data Assertion = Assertion {
     baType :: AssertionType,
     baAccount :: QName,
     baAmount :: Amount
 } deriving (Show)
 
-data CsvBAssertion = CsvBAssertion {
+data CsvAssertion = CsvAssertion {
     csvbaDate1 :: Day,
     csvbaAccount :: Text,
     csvbaAmount :: Double,
     csvbaDate2 :: Maybe Day
 } deriving (Show)
 
-data BTarget = BTarget {
+data BudgetTarget = BudgetTarget {
     btStart :: Day,
     btAccount :: QName,
     btAmount :: Amount,
-    btFrequency :: BFrequency,
+    btFrequency :: BudgetFrequency,
     btInterval :: Int,
     btUntil :: Day
 } deriving (Show)
 
-data BFrequency = BWeekly | BMonthly | BYearly deriving (Show)
+data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show)
 
 data Journal = Journal {
     jAccounts :: [QName],
     jTxns :: [Txn],
-    jAssertions :: [BAssertion],
-    jTargets :: [BTarget]
-} deriving (Show)
-
-data CsvAccountHeader = CsvAccountHeader {
-    acchAccount :: Text
-} deriving (Show)
-
-data CsvTxnHeader = CsvTxnHeader {
-    thId :: Text,
-    thDate :: Text,
-    thAccount:: Text,
-    thAmount :: Text,
-    thComment :: Text,
-    thStmtDesc :: Text,
-    thStmtDate :: Text
-} deriving (Show)
-
-data CsvAssertionHeader = CsvAssertionHeader {
-    ahDate :: Text,
-    ahAccount :: Text,
-    ahAmount :: Text,
-    ahDate2 :: Text
-} deriving (Show)
-
-data CsvBTargetHeader = CsvBTargetHeader {
-    cbthStart :: Text,
-    cbthAccount :: Text,
-    cbthAmount :: Text,
-    cbthFrequency :: Text,
-    cbthInterval :: Text,
-    cbthUntil :: Text
+    jAssertions :: [Assertion],
+    jTargets :: [BudgetTarget]
 } deriving (Show)

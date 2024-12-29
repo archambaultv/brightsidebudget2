@@ -9,14 +9,17 @@ module Brightsidebudget.Account
     parent,
     isParentOf,
     isChildOf,
-    shortNameOf
+    shortNameOf,
+    csvAccountToAccount,
+    accountToCsvAccount,
+    validateAccount
 )
 where
 
 import Data.Text (Text)
 import Data.List (isPrefixOf, isSuffixOf)
 import qualified Data.Text as T
-import Brightsidebudget.Data (QName)
+import Brightsidebudget.Data (QName, CsvAccount(..), Account(..))
 
 validateQname :: QName -> Either Text ()
 validateQname [] = Left "QName cannot be empty"
@@ -54,3 +57,18 @@ shortNameOf qn qns =
         [] -> Left $ T.pack $ "no matching QName for " ++ show (qnameToText qn)
         [x] -> Right x
         _ -> Left $ T.pack $ "multiple matching QNames" ++ show (map qnameToText xs)
+
+csvAccountToAccount :: CsvAccount -> Account
+csvAccountToAccount (CsvAccount {csvaName = name, csvaNumber = num}) =
+    Account {aName = textToQname name, aNumber = num}
+
+accountToCsvAccount :: Account -> CsvAccount
+accountToCsvAccount (Account {aName = name, aNumber = num}) =
+    CsvAccount {csvaName = qnameToText name, csvaNumber = num}
+
+validateAccount :: Account -> Either Text ()
+validateAccount (Account {aName = name, aNumber = num}) = do
+    validateQname name
+    if num < 0
+    then Left "Account number must be non-negative"
+    else Right ()

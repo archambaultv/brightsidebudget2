@@ -14,6 +14,7 @@ import Data.Ord (comparing)
 import Brightsidebudget.Data (Txn(..), Posting(..), CsvTxn(..), QName)
 import Brightsidebudget.Account (validateQname, textToQname, shortNameOf)
 import Brightsidebudget.Amount (doubleToAmount)
+import Brightsidebudget.Calendar (dateAsDay)
 
 csvTxnsToTxns :: [CsvTxn] -> Either Text [Txn]
 csvTxnsToTxns csvTnxs =
@@ -25,22 +26,25 @@ csvTxnToTxn' :: [CsvTxn] -> Either Text Txn
 csvTxnToTxn' [] = Left $ T.pack "empty posting list"
 csvTxnToTxn' csvTnxs@(CsvTxn {csvtId = ident, csvtDate = date}:_) =
     let dates = map csvtDate csvTnxs
-    in if any (/= date) dates
-       then Left $ T.pack $ "mismatched dates for txn " ++ show ident
-       else Right $ Txn {
-            txnId = ident,
-            txnDate = date,
-            txnPostings = map csvPostingToPosting csvTnxs
-        }
+        sameDate = if all (== date) dates
+                   then Right ()
+                   else Left $ T.pack $ "mismatched dates for txn " ++ show ident
+        
+    in do
+        sameDate
+        d <- dateAsDay date
+        ps <- sequence $ map csvPostingToPosting csvTnxs
+        pure $ Txn {txnId = ident, txnDate = d, txnPostings = ps}
 
-csvPostingToPosting :: CsvTxn -> Posting
-csvPostingToPosting (CsvTxn {csvtAccount = acct, csvtAmount = amt, csvtComment = cmt, csvtStmtDesc = sdesc, csvtStmtDate = sdate}) =
-    Posting {
+csvPostingToPosting :: CsvTxn -> Either Text Posting
+csvPostingToPosting (CsvTxn {csvtAccount = acct, csvtAmount = amt, csvtComment = cmt, csvtStmtDesc = sdesc, csvtStmtDate = sdate}) = do
+    sd <- dateAsDay sdate
+    pure $ Posting {
         pAccount = textToQname acct,
         pAmount = doubleToAmount amt,
         pComment = cmt,
         pStmtDesc = sdesc,
-        pStmtDate = sdate
+        pStmtDate = sd
     }
 
 validateTxn :: [QName] -> Txn -> Either Text Txn
