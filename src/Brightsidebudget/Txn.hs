@@ -4,6 +4,7 @@ module Brightsidebudget.Txn
 (
     fromCsvTxns,
     validateTxn,
+    validateTxns,
     loadTxns
 )
 where
@@ -63,6 +64,9 @@ validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}
         let ps = zipWith (\p qn -> p {pAccount = qn}) postings fullQn
         pure $ Txn ident date ps
 
+validateTxns :: [QName] -> [Txn] -> Either Text [Txn]
+validateTxns knownQn txns = traverse (validateTxn knownQn) txns
+
 loadCsvTxns :: FilePath -> ExceptT Text IO [CsvTxn]
 loadCsvTxns fp = do
     csvTxns <- loadFile fp
@@ -75,8 +79,7 @@ loadAllCsvTxns fps = do
     csvTxns <- traverse loadCsvTxns fps
     pure $ concat csvTxns
 
-loadTxns :: [QName] -> [FilePath] -> ExceptT Text IO [Txn]
-loadTxns knownQn fps = do
+loadTxns :: [FilePath] -> ExceptT Text IO [Txn]
+loadTxns fps = do
     csvTxns <- loadAllCsvTxns fps
-    txns <- liftEither $ fromCsvTxns csvTxns
-    liftEither $ traverse (validateTxn knownQn) txns
+    liftEither $ fromCsvTxns csvTxns

@@ -5,6 +5,7 @@ module Brightsidebudget.Budget
       fromCsvBudgetTarget,
       toCsvBudgetTarget,
       validateBudgetTarget,
+      validateBudgetTargets,
       loadBudgetTargets
     )
 where
@@ -52,6 +53,9 @@ validateBudgetTarget knownQn (BudgetTarget {btAccount = acc, btAmount = amt, btC
         Nothing -> pure ()
     pure $ BudgetTarget fullQn amt cmt start freq interval until_
 
+validateBudgetTargets :: [QName] -> [BudgetTarget] -> Either Text [BudgetTarget]
+validateBudgetTargets knownQn = traverse (validateBudgetTarget knownQn)
+
 loadCsvBudgetTargets :: FilePath -> ExceptT Text IO [CsvBudgetTarget]
 loadCsvBudgetTargets filePath = do
     csvData <- loadFile filePath
@@ -59,8 +63,7 @@ loadCsvBudgetTargets filePath = do
         Left err -> throwError $ T.pack err
         Right (_, v) -> pure $ V.toList v
 
-loadBudgetTargets :: [QName] -> FilePath -> ExceptT Text IO [BudgetTarget]
-loadBudgetTargets knownQn filePath = do
+loadBudgetTargets :: FilePath -> ExceptT Text IO [BudgetTarget]
+loadBudgetTargets filePath = do
     csvBudgetTargets <- loadCsvBudgetTargets filePath
-    targets <- liftEither $ traverse fromCsvBudgetTarget csvBudgetTargets
-    liftEither $ traverse (validateBudgetTarget knownQn) targets
+    liftEither $ traverse fromCsvBudgetTarget csvBudgetTargets

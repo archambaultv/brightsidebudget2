@@ -13,6 +13,7 @@ module Brightsidebudget.Account
     fromCsvAccount,
     toCsvAccount,
     validateAccount,
+    validateAccounts,
     loadAccounts
 )
 where
@@ -21,7 +22,7 @@ import Data.Text (Text)
 import Data.List (isPrefixOf, isSuffixOf)
 import qualified Data.HashSet as HS
 import Data.Foldable (traverse_)
-import Control.Monad.Except (ExceptT, throwError, liftEither)
+import Control.Monad.Except (ExceptT, throwError)
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.Csv (decodeByName)
@@ -99,5 +100,4 @@ loadAccounts :: FilePath -> ExceptT Text IO [Account]
 loadAccounts filePath = do
     csvAccounts <- loadCsvAccounts filePath
     let accs = map fromCsvAccount csvAccounts
-    liftEither $ validateAccounts accs
     pure accs

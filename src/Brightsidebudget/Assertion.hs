@@ -2,6 +2,7 @@ module Brightsidebudget.Assertion
     ( fromCsvAssertion,
       toCsvAssertion,
       validateAssertion,
+      validateAssertions,
       loadAssertions
     )
 where
@@ -39,6 +40,9 @@ validateAssertion knownQn (Assertion {baType = at, baAccount = acc, baAmount = a
     fullQn <- shortNameOf acc knownQn
     pure $ Assertion at fullQn amt
 
+validateAssertions :: [QName] -> [Assertion] -> Either Text [Assertion]
+validateAssertions knownQn = traverse (validateAssertion knownQn)
+
 loadCsvAssertions :: FilePath -> ExceptT Text IO [CsvAssertion]
 loadCsvAssertions filePath = do
     csvData <- loadFile filePath
@@ -46,8 +50,7 @@ loadCsvAssertions filePath = do
         Left err -> throwError $ T.pack err
         Right (_, v) -> pure $ V.toList v
 
-loadAssertions :: [QName] -> FilePath -> ExceptT Text IO [Assertion]
-loadAssertions knownQn filePath = do
+loadAssertions :: FilePath -> ExceptT Text IO [Assertion]
+loadAssertions filePath = do
     csvAssertions <- loadCsvAssertions filePath
-    txns <- liftEither $ traverse fromCsvAssertion csvAssertions
-    liftEither $ traverse (validateAssertion knownQn) txns
+    liftEither $ traverse fromCsvAssertion csvAssertions
