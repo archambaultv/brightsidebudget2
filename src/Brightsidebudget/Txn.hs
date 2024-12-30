@@ -107,4 +107,4 @@ saveTxnsMultipleFiles :: (Txn -> FilePath) -> [Txn] -> IO ()
 saveTxnsMultipleFiles txnFile txns = do
     let files = map txnFile txns
     let filesTable = HM.fromListWith (++) $ zip files (map (:[]) txns)
-    mapM_ (\(file, xs) -> saveTxns file xs) (HM.toList filesTable)
+    mapM_ (\(file, xs) -> saveTxns file (sortBy (comparing txnId) xs)) (HM.toList filesTable)
