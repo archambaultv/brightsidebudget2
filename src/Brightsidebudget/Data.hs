@@ -92,7 +92,7 @@ instance DefaultOrdered CsvTxn where
 
 data AssertionType = BalanceAssertion Day
                    | FlowAssertion Day Day
-    deriving (Show, Eq)
+    deriving (Show, Eq, Ord)
 
 data Assertion = Assertion {
     baType :: AssertionType,

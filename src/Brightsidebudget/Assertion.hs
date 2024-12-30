@@ -10,8 +10,10 @@ where
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import Control.Monad (unless)
 import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Map.Strict as M
 import qualified Data.Vector as V
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Utils (loadFile)
@@ -43,7 +45,14 @@ validateAssertion knownQn (Assertion {baType = at, baAccount = acc, baAmount = a
     pure $ Assertion at fullQn amt
 
 validateAssertions :: [QName] -> [Assertion] -> Either Text [Assertion]
-validateAssertions knownQn = traverse (validateAssertion knownQn)
+validateAssertions knownQn assertions = do
+    -- Check for duplicate assertions
+    let ids = map (\a -> (qnameToText $ baAccount a, baType a)) assertions
+    let ids_set = M.fromListWith (+) $ zip ids (repeat (1 :: Int))
+    let dups = filter ((> 1) . snd) $ M.toList ids_set
+    unless (null dups) (Left $ T.pack $ "duplicate balance assertions: " ++ show dups)
+    -- validate each assertion and update the QName
+    traverse (validateAssertion knownQn) assertions
 
 loadCsvAssertions :: FilePath -> ExceptT Text IO [CsvAssertion]
 loadCsvAssertions filePath = do

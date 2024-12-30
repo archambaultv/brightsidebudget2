@@ -79,7 +79,14 @@ validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}
         pure $ Txn ident date ps
 
 validateTxns :: [QName] -> [Txn] -> Either Text [Txn]
-validateTxns knownQn txns = traverse (validateTxn knownQn) txns
+validateTxns knownQn txns = do
+    -- check for duplicate txn ids
+    let ids = map txnId txns
+    let ids_set = HM.fromListWith (+) $ zip ids (repeat (1 :: Int))
+    let dups = filter ((> 1) . snd) $ HM.toList ids_set
+    unless (null dups) (Left $ T.pack $ "duplicate txn ids: " ++ show dups)
+    -- validate each txn and update the QName
+    traverse (validateTxn knownQn) txns
 
 loadCsvTxns :: FilePath -> ExceptT Text IO [CsvTxn]
 loadCsvTxns fp = do
@@ -88,15 +95,10 @@ loadCsvTxns fp = do
         Left err -> throwError $ T.pack err
         Right (_, v) -> pure $ V.toList v
 
-loadAllCsvTxns :: [FilePath] -> ExceptT Text IO [CsvTxn]
-loadAllCsvTxns fps = do
-    csvTxns <- traverse loadCsvTxns fps
-    pure $ concat csvTxns
-
 loadTxns :: [FilePath] -> ExceptT Text IO [Txn]
 loadTxns fps = do
-    csvTxns <- loadAllCsvTxns fps
-    liftEither $ fromCsvTxns csvTxns
+    csvTxns <- traverse loadCsvTxns fps
+    liftEither $ concat <$> traverse fromCsvTxns csvTxns
 
 saveTxns :: FilePath -> [Txn] -> IO ()
 saveTxns filePath txns = do
