@@ -16,7 +16,8 @@ module Brightsidebudget.Data
     BudgetFrequency(..),
     CsvBudgetTarget(..),
     Journal(..),
-    JournalConfig(..),
+    JLoadConfig(..),
+    JSaveConfig(..)
     ) where
 
 import Data.Text (Text)
@@ -31,12 +32,12 @@ type QName = [Text]
 data Account = Account {
     aName :: QName,
     aNumber :: Int
-} deriving (Show)
+} deriving (Show, Eq)
 
 data CsvAccount = CsvAccount {
     csvaName :: Text,
     csvaNumber :: Int
-} deriving (Show)
+} deriving (Show, Eq)
 
 fieldCompte, fieldNumero :: ByteString
 fieldCompte = fromString "Compte"
@@ -54,7 +55,7 @@ data Txn = Txn {
     txnId :: Int,
     txnDate :: Day,
     txnPostings :: [Posting]
-} deriving (Show)
+} deriving (Show, Eq)
 
 data Posting = Posting {
     pAccount :: QName,
@@ -62,7 +63,7 @@ data Posting = Posting {
     pComment :: Text,
     pStmtDesc :: Text,
     pStmtDate :: Maybe Day
-} deriving (Show)
+} deriving (Show, Eq)
 
 data CsvTxn = CsvTxn {
     csvtId :: Int,
@@ -72,7 +73,7 @@ data CsvTxn = CsvTxn {
     csvtComment :: Text,
     csvtStmtDesc :: Text,
     csvtStmtDate :: Text
-} deriving (Show)
+} deriving (Show, Eq)
 
 stmt_desc, stmt_date :: ByteString
 stmt_desc = fromString "Description du relevé"
@@ -97,14 +98,14 @@ data Assertion = Assertion {
     baType :: AssertionType,
     baAccount :: QName,
     baAmount :: Amount
-} deriving (Show)
+} deriving (Show, Eq)
 
 data CsvAssertion = CsvAssertion {
     csvbaDate1 :: Text,
     csvbaAccount :: Text,
     csvbaAmount :: Double,
     csvbaDate2 :: Text
-} deriving (Show)
+} deriving (Show, Eq)
 
 instance FromNamedRecord CsvAssertion where
     parseNamedRecord m = CsvAssertion <$> m .: "Date" <*> m .: "Compte" <*> m .: "Montant" <*> m .: "Date de fin pour flux"
@@ -122,7 +123,7 @@ data BudgetTarget = BudgetTarget {
     btFrequency :: BudgetFrequency,
     btInterval :: Int,
     btUntil :: Maybe Day
-} deriving (Show)
+} deriving (Show, Eq)
 
 data CsvBudgetTarget = CsvBudgetTarget {
     csvbtAccount :: Text,
@@ -132,7 +133,7 @@ data CsvBudgetTarget = CsvBudgetTarget {
     csvbtFrequency :: Text,
     csvbtInterval :: Int,
     csvbtUntil :: Text
-} deriving (Show)
+} deriving (Show, Eq)
 
 start_date, frequency :: ByteString
 start_date = fromString "Date de début"
@@ -143,25 +144,32 @@ instance FromNamedRecord CsvBudgetTarget where
                                          <*> m .: start_date <*> m .: frequency <*> m .: "Intervalle"
                                          <*> m .: "Date de fin"
 instance ToNamedRecord CsvBudgetTarget where
-    toNamedRecord (CsvBudgetTarget acct cmt amt start freq interval until_) = namedRecord [
+    toNamedRecord (CsvBudgetTarget acct amt cmt start freq interval until_) = namedRecord [
         "Compte" .= acct, "Montant" .= amt, "Commentaire" .= cmt, start_date .= start,
         frequency .= freq, "Intervalle" .= interval, "Date de fin" .= until_]
 instance DefaultOrdered CsvBudgetTarget where
     headerOrder _ = header ["Compte", "Montant", "Commentaire", start_date, frequency, "Intervalle", "Date de fin"]
 
 
-data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show)
+data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show, Eq)
 
 data Journal = Journal {
     jAccounts :: [Account],
     jTxns :: [Txn],
     jAssertions :: [Assertion],
     jTargets :: [BudgetTarget]
-} deriving (Show)
+} deriving (Show, Eq)
 
-data JournalConfig = JournalConfig {
-    jcAccounts :: FilePath,
-    jcTxns :: [FilePath],
-    jcAssertions :: Maybe FilePath,
-    jcTargets :: Maybe FilePath
-} deriving (Show)
+data JLoadConfig = JLoadConfig {
+    jlAccounts :: FilePath,
+    jlTxns :: [FilePath],
+    jlAssertions :: Maybe FilePath,
+    jlTargets :: Maybe FilePath
+} deriving (Show, Eq)
+
+data JSaveConfig = JSaveConfig {
+    jsAccounts :: FilePath,
+    jsTxns :: Txn -> FilePath,
+    jsAssertions :: FilePath,
+    jsTargets :: FilePath
+}

@@ -3,13 +3,15 @@ module Brightsidebudget.Assertion
       toCsvAssertion,
       validateAssertion,
       validateAssertions,
-      loadAssertions
+      loadAssertions,
+      saveAssertions
     )
 where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Csv (decodeByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByName)
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Vector as V
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Utils (loadFile)
@@ -54,3 +56,8 @@ loadAssertions :: FilePath -> ExceptT Text IO [Assertion]
 loadAssertions filePath = do
     csvAssertions <- loadCsvAssertions filePath
     liftEither $ traverse fromCsvAssertion csvAssertions
+
+saveAssertions :: FilePath -> [Assertion] -> IO ()
+saveAssertions filePath assertions = do
+    let csvAssertions = map toCsvAssertion assertions
+    BL.writeFile filePath $ encodeDefaultOrderedByName csvAssertions

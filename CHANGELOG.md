@@ -9,6 +9,7 @@ and this project adheres to the
 ## 0.2.0 - 2024-12-29
 ### Added
 - More unit tests
+- `verifyJournal` and `saveJournal` functions
 
 ## 0.1.0 - 2024-12-29
 ### Added

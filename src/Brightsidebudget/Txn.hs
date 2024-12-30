@@ -3,9 +3,12 @@
 module Brightsidebudget.Txn
 (
     fromCsvTxns,
+    toCsvTxns,
     validateTxn,
     validateTxns,
-    loadTxns
+    loadTxns,
+    saveTxns,
+    saveTxnsMultipleFiles
 )
 where
 
@@ -15,13 +18,15 @@ import Data.List (groupBy, sortBy)
 import Data.Ord (comparing)
 import Data.Foldable (traverse_)
 import qualified Data.Vector as V
-import Data.Csv (decodeByName)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.HashMap.Strict as HM
+import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import Control.Monad (unless, when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Data (Txn(..), Posting(..), CsvTxn(..), QName)
-import Brightsidebudget.Account (validateQname, textToQname, shortNameOf)
-import Brightsidebudget.Amount (doubleToAmount)
-import Brightsidebudget.Calendar (dateAsDay)
+import Brightsidebudget.Account (validateQname, textToQname, shortNameOf, qnameToText)
+import Brightsidebudget.Amount (doubleToAmount, amountToDouble)
+import Brightsidebudget.Calendar (dateAsDay, dayAsDate)
 import Brightsidebudget.Utils (loadFile)
 
 fromCsvTxns :: [CsvTxn] -> Either Text [Txn]
@@ -53,6 +58,15 @@ fromCsvPosting (CsvTxn {csvtAccount = acct, csvtAmount = amt, csvtComment = cmt,
         pStmtDate = sd
     }
 
+toCsvTxns :: Txn -> [CsvTxn]
+toCsvTxns (Txn {txnId = ident, txnDate = date, txnPostings = postings}) = map toCsvTxn postings
+    where toCsvTxn (Posting {pAccount = acct, pAmount = amt, pComment = cmt,
+                             pStmtDesc = sdesc, pStmtDate = sdate}) =
+            let sd = maybe "" dayAsDate sdate
+            in CsvTxn {csvtId = ident, csvtDate = dayAsDate date,
+                       csvtAccount = qnameToText acct, csvtAmount = amountToDouble amt,
+                       csvtComment = cmt, csvtStmtDesc = sdesc, csvtStmtDate = sd}
+
 validateTxn :: [QName] -> Txn -> Either Text Txn
 validateTxn _ (Txn _ _ []) = Left "txn has no postings"
 validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}) =
@@ -83,3 +97,14 @@ loadTxns :: [FilePath] -> ExceptT Text IO [Txn]
 loadTxns fps = do
     csvTxns <- loadAllCsvTxns fps
     liftEither $ fromCsvTxns csvTxns
+
+saveTxns :: FilePath -> [Txn] -> IO ()
+saveTxns filePath txns = do
+    let csvTxns = concatMap toCsvTxns txns
+    BL.writeFile filePath $ encodeDefaultOrderedByName csvTxns
+
+saveTxnsMultipleFiles :: (Txn -> FilePath) -> [Txn] -> IO ()
+saveTxnsMultipleFiles txnFile txns = do
+    let files = map txnFile txns
+    let filesTable = HM.fromListWith (++) $ zip files (map (:[]) txns)
+    mapM_ (\(file, xs) -> saveTxns file xs) (HM.toList filesTable)

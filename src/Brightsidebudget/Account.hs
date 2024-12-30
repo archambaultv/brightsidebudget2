@@ -14,18 +14,20 @@ module Brightsidebudget.Account
     toCsvAccount,
     validateAccount,
     validateAccounts,
-    loadAccounts
+    loadAccounts,
+    saveAccounts
 )
 where
 
 import Data.Text (Text)
 import Data.List (isPrefixOf, isSuffixOf)
 import qualified Data.HashSet as HS
+import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
 import Control.Monad.Except (ExceptT, throwError)
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import Data.Csv (decodeByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import Brightsidebudget.Data (QName, CsvAccount(..), Account(..))
 import Brightsidebudget.Utils (loadFile)
 
@@ -101,3 +103,9 @@ loadAccounts filePath = do
     csvAccounts <- loadCsvAccounts filePath
     let accs = map fromCsvAccount csvAccounts
     pure accs
+
+saveAccounts :: FilePath -> [Account] -> IO ()
+saveAccounts filePath accs = do
+    let csvAccs = map toCsvAccount accs
+    let csvData = encodeDefaultOrderedByName csvAccs
+    BL.writeFile filePath csvData

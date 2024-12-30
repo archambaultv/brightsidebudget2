@@ -7,16 +7,17 @@ module Brightsidebudget.Journal
 where
 
 import Data.Text (Text)
+import Control.Monad (unless)
 import Control.Monad.Except (ExceptT)
-import Brightsidebudget.Data (Journal(..), Account(..), JournalConfig(..))
-import Brightsidebudget.Account (loadAccounts, validateAccounts)
-import Brightsidebudget.Txn (loadTxns, validateTxns)
-import Brightsidebudget.Assertion (loadAssertions, validateAssertions)
-import Brightsidebudget.Budget (loadBudgetTargets, validateBudgetTargets)
+import Brightsidebudget.Data (Journal(..), Account(..), JLoadConfig(..), JSaveConfig(..))
+import Brightsidebudget.Account (loadAccounts, validateAccounts, saveAccounts)
+import Brightsidebudget.Txn (loadTxns, validateTxns, saveTxnsMultipleFiles)
+import Brightsidebudget.Assertion (loadAssertions, validateAssertions, saveAssertions)
+import Brightsidebudget.Budget (loadBudgetTargets, validateBudgetTargets, saveBudgetTargets)
 
 -- | Load a journal from a configuration
-loadJournal :: JournalConfig -> ExceptT Text IO Journal
-loadJournal (JournalConfig {jcAccounts = accs, jcAssertions = as, jcTxns = txns, jcTargets = targets}) = do
+loadJournal :: JLoadConfig -> ExceptT Text IO Journal
+loadJournal (JLoadConfig {jlAccounts = accs, jlAssertions = as, jlTxns = txns, jlTargets = targets}) = do
     accs' <- loadAccounts accs
     txns' <- loadTxns txns
     as' <-  maybe (pure []) loadAssertions as
@@ -32,5 +33,12 @@ validateJournal (Journal {jAccounts = accs, jTxns = txns, jAssertions = as, jTar
     targets2 <- validateBudgetTargets fullQn targets
     pure $ Journal accs txns2 as2 targets2
 
-saveJournal :: FilePath -> Journal -> JournalConfig -> IO ()
-saveJournal = undefined
+saveJournal :: JSaveConfig -> Journal -> IO ()
+saveJournal journalConfig journal = do
+    saveAccounts (jsAccounts journalConfig) (jAccounts journal)
+    let txns = jTxns journal
+    unless (null txns) (saveTxnsMultipleFiles (jsTxns journalConfig) txns)
+    let as = jAssertions journal
+    unless (null as) (saveAssertions (jsAssertions journalConfig) as)
+    let ts = jTargets journal
+    unless (null ts) (saveBudgetTargets (jsTargets journalConfig) ts)

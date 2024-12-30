@@ -6,14 +6,16 @@ module Brightsidebudget.Budget
       toCsvBudgetTarget,
       validateBudgetTarget,
       validateBudgetTargets,
-      loadBudgetTargets
+      loadBudgetTargets,
+      saveBudgetTargets
     )
 where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.Csv (decodeByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import qualified Data.Vector as V
+import qualified Data.ByteString.Lazy as BL
 import Control.Monad (when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Utils (loadFile)
@@ -67,3 +69,8 @@ loadBudgetTargets :: FilePath -> ExceptT Text IO [BudgetTarget]
 loadBudgetTargets filePath = do
     csvBudgetTargets <- loadCsvBudgetTargets filePath
     liftEither $ traverse fromCsvBudgetTarget csvBudgetTargets
+
+saveBudgetTargets :: FilePath -> [BudgetTarget] -> IO ()
+saveBudgetTargets filePath budgetTargets = do
+    let csvBudgetTargets = map toCsvBudgetTarget budgetTargets
+    BL.writeFile filePath $ encodeDefaultOrderedByName csvBudgetTargets
