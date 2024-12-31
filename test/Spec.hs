@@ -1,9 +1,10 @@
 import Test.Tasty
-import Journal (journalTests)
-import Account (accountTests)
+import Journal.Journal (journalTests)
+import Journal.Account (accountTests)
+import Report.Txns (txnsTests)
 
 main :: IO ()
 main = defaultMain allTests
 
 allTests :: TestTree
-allTests = testGroup "All tests" [accountTests, journalTests]
+allTests = testGroup "All tests" [accountTests, journalTests, txnsTests]

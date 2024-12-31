@@ -59,14 +59,14 @@ postingLineToText maxDepth pl =
         comment = pComment posting
         statementDesc = pStmtDesc posting
         statementDate = maybe "" (T.pack . show . dayAsDate) $ pStmtDate posting
-        date = T.pack $ show $ dayAsDate $ txnDate txn
+        date = dayAsDate $ txnDate txn
         txnNo = T.pack $ show $ txnId txn
         accParts = NE.take maxDepth acc ++ replicate (maxDepth - length acc) ""
         dateStr = showGregorian $ txnDate txn
         year = T.pack $ take 4 dateStr
         month = T.pack $ take 2 $ drop 5 dateStr
         yearMonth = year <> "-" <> month
-        txnAccounts = T.intercalate ", " $ nub $ map (qnameToText . pAccount) (txnPostings txn)
+        txnAccounts = T.intercalate " | " $ nub $ map (qnameToText . pAccount) (txnPostings txn)
     in [ txnNo, date, qnameToText acc, shortAcc, amount, comment, statementDesc, statementDate ]
        ++ accParts
        ++ [ year, month, yearMonth, txnAccounts ]

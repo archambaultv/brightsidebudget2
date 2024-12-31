@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Account (
+module Journal.Account (
     accountTests
 )
 where

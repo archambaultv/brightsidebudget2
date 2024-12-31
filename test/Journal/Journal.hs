@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Journal (
+module Journal.Journal (
     journalTests,
-    myRunExceptT
+    myRunExceptT,
+    config
 )
 where
 
