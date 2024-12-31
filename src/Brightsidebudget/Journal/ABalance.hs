@@ -1,4 +1,4 @@
-module Brightsidebudget.ABalance
+module Brightsidebudget.Journal.ABalance
     ( 
         dailyFlowMap,
         dailyFlow,
@@ -8,7 +8,7 @@ module Brightsidebudget.ABalance
     )
 where
 
-import Brightsidebudget.Data (Posting(..), Txn(..), ABalance, AFlow, Amount, QName, WhichDate(..))
+import Brightsidebudget.Journal.Data (Posting(..), Txn(..), ABalance, AFlow, Amount, QName, WhichDate(..))
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Map.Strict as M
 import Data.Time.Calendar (Day)

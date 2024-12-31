@@ -8,7 +8,7 @@ where
 import Test.Tasty
 import Test.Tasty.HUnit
 import Data.Either (isLeft, isRight)
-import Brightsidebudget.Account as A
+import qualified Brightsidebudget.Journal.Account as A
 
 accountTests :: TestTree
 accountTests = testGroup "Account" [qNameTests]

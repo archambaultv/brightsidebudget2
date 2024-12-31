@@ -1,11 +1,11 @@
-module Brightsidebudget.Amount
+module Brightsidebudget.Journal.Amount
     ( 
         doubleToAmount,
         amountToDouble
     )
 where
 
-import Brightsidebudget.Data (Amount)
+import Brightsidebudget.Journal.Data (Amount)
 
 doubleToAmount :: Double -> Amount
 doubleToAmount = round . (* 100)

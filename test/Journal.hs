@@ -10,7 +10,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
-import Brightsidebudget (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
+import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
     loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertion)
 
 myRunExceptT :: (Show e) => ExceptT e IO a -> IO ()

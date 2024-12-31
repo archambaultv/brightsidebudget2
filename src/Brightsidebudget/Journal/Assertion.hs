@@ -1,4 +1,4 @@
-module Brightsidebudget.Assertion
+module Brightsidebudget.Journal.Assertion
     ( fromCsvAssertion,
       toCsvAssertion,
       validateAssertion,
@@ -17,10 +17,10 @@ import qualified Data.Map.Strict as M
 import qualified Data.Vector as V
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Utils (loadFile)
-import Brightsidebudget.Data (Assertion(..), AssertionType(..), QName, CsvAssertion(..))
-import Brightsidebudget.Account (textToQname, validateQname, shortNameOf, qnameToText)
-import Brightsidebudget.Amount (doubleToAmount, amountToDouble)
-import Brightsidebudget.Calendar (dateAsDay, dayAsDate)
+import Brightsidebudget.Journal.Data (Assertion(..), AssertionType(..), QName, CsvAssertion(..))
+import Brightsidebudget.Journal.Account (textToQname, validateQname, shortNameOf, qnameToText)
+import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
+import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
 
 fromCsvAssertion :: CsvAssertion -> Either Text Assertion
 fromCsvAssertion (CsvAssertion {csvbaDate1 = d1, csvbaAccount = acc, csvbaAmount = amt, csvbaDate2 = d2}) = do

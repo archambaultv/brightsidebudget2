@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Brightsidebudget.Txn
+module Brightsidebudget.Journal.Txn
 (
     fromCsvTxns,
     toCsvTxns,
@@ -23,10 +23,10 @@ import qualified Data.HashMap.Strict as HM
 import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import Control.Monad (unless, when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
-import Brightsidebudget.Data (Txn(..), Posting(..), CsvTxn(..), QName)
-import Brightsidebudget.Account (validateQname, textToQname, shortNameOf, qnameToText)
-import Brightsidebudget.Amount (doubleToAmount, amountToDouble)
-import Brightsidebudget.Calendar (dateAsDay, dayAsDate)
+import Brightsidebudget.Journal.Data (Txn(..), Posting(..), CsvTxn(..), QName)
+import Brightsidebudget.Journal.Account (validateQname, textToQname, shortNameOf, qnameToText)
+import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
+import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
 import Brightsidebudget.Utils (loadFile)
 
 fromCsvTxns :: [CsvTxn] -> Either Text [Txn]

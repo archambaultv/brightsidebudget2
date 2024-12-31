@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Brightsidebudget.Budget
+module Brightsidebudget.Journal.Budget
     (
       fromCsvBudgetTarget,
       toCsvBudgetTarget,
@@ -19,10 +19,10 @@ import qualified Data.ByteString.Lazy as BL
 import Control.Monad (when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Utils (loadFile)
-import Brightsidebudget.Data (BudgetTarget(..), CsvBudgetTarget(..), BudgetFrequency(..), QName)
-import Brightsidebudget.Account (textToQname, validateQname, shortNameOf, qnameToText)
-import Brightsidebudget.Amount (doubleToAmount, amountToDouble)
-import Brightsidebudget.Calendar (dateAsDay, dayAsDate)
+import Brightsidebudget.Journal.Data (BudgetTarget(..), CsvBudgetTarget(..), BudgetFrequency(..), QName)
+import Brightsidebudget.Journal.Account (textToQname, validateQname, shortNameOf, qnameToText)
+import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
+import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
 
 fromCsvBudgetTarget :: CsvBudgetTarget -> Either Text BudgetTarget
 fromCsvBudgetTarget (CsvBudgetTarget {csvbtAccount = acc, csvbtAmount = amt, csvbtComment = cmt, csvbtStart = start, csvbtFrequency = freq, csvbtInterval = interval, csvbtUntil = until_}) = do

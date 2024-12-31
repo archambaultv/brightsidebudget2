@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Brightsidebudget.Data
+module Brightsidebudget.Journal.Data
     ( 
     Amount,
     QName,

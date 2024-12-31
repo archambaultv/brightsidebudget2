@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Brightsidebudget.Account
+module Brightsidebudget.Journal.Account
 (
     validateQname,
     qnameToText,
@@ -28,7 +28,7 @@ import Control.Monad.Except (ExceptT, throwError)
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import Data.Csv (decodeByName, encodeDefaultOrderedByName)
-import Brightsidebudget.Data (QName, CsvAccount(..), Account(..))
+import Brightsidebudget.Journal.Data (QName, CsvAccount(..), Account(..))
 import Brightsidebudget.Utils (loadFile)
 
 validateQname :: QName -> Either Text ()

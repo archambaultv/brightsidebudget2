@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Brightsidebudget.Calendar
+module Brightsidebudget.Journal.Calendar
     ( 
         dateAsDay,
         dayAsDate
