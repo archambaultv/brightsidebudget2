@@ -183,5 +183,6 @@ data JSaveConfig = JSaveConfig {
     jsAccounts :: FilePath,
     jsTxns :: Txn -> FilePath,
     jsAssertions :: FilePath,
-    jsTargets :: FilePath
+    jsTargets :: FilePath,
+    jsQnameLength :: QName -> Int
 }
