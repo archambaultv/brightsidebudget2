@@ -23,6 +23,7 @@ module Brightsidebudget.Journal.Data
     JSaveConfig(..)
     ) where
 
+import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
 import qualified Data.HashMap.Strict as HM
@@ -32,7 +33,8 @@ import Data.Csv (FromNamedRecord(..), ToNamedRecord(..), DefaultOrdered(..), nam
 
 type Amount = Integer
 
-type QName = [Text]
+-- | Qualified name for an account. A non-empty list of strings
+type QName = NonEmpty Text
 
 data Account = Account {
     aName :: QName,

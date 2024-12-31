@@ -8,6 +8,7 @@ where
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
 import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
@@ -64,14 +65,14 @@ loadJournalTest = testCase "loadJournal" $ myRunExceptT $ do
     liftIO $ assertEqual "Nb of targets" 4 (length (jTargets journal))
     let txn0 = jTxns journal !! 0
     let ps0 = txnPostings txn0 !! 0
-    liftIO $ assertEqual "Short QName" ["Compte courant"] (pAccount ps0)
+    liftIO $ assertEqual "Short QName" ("Compte courant" :| []) (pAccount ps0)
 
 validateJournalTest1 :: TestTree
 validateJournalTest1 = testCase "validateJournal" $ myRunExceptT $ do
     journal <- loadJournal config >>= (liftEither . validateJournal)
     let txn0 = jTxns journal !! 0
     let ps0 = txnPostings txn0 !! 0
-    liftIO $ assertEqual "Full QName" ["Actifs", "Compte courant"] (pAccount ps0)
+    liftIO $ assertEqual "Full QName" ("Actifs" :| ["Compte courant"]) (pAccount ps0)
 
 saveAndReloadJournalTest :: TestTree
 saveAndReloadJournalTest = testCase "saveAndReloadJournal" $ myRunExceptT $ do

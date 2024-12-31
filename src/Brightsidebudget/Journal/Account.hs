@@ -15,12 +15,15 @@ module Brightsidebudget.Journal.Account
     validateAccount,
     validateAccounts,
     loadAccounts,
-    saveAccounts
+    saveAccounts,
+    toShortNames
 )
 where
 
 import Data.Text (Text)
-import Data.List (isPrefixOf, isSuffixOf)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
+import Data.List (isSuffixOf)
 import qualified Data.HashSet as HS
 import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
@@ -32,7 +35,6 @@ import Brightsidebudget.Journal.Data (QName, CsvAccount(..), Account(..))
 import Brightsidebudget.Utils (loadFile)
 
 validateQname :: QName -> Either Text ()
-validateQname [] = Left "QName cannot be empty"
 validateQname qn =
     let empty = T.null . T.strip
         has_empty = any empty qn
@@ -43,30 +45,57 @@ validateQname qn =
         _ -> Right ()
 
 qnameToText :: QName -> Text
-qnameToText = T.intercalate ":"
+qnameToText = T.intercalate ":" . NE.toList
 
 textToQname :: Text -> QName
-textToQname = T.splitOn ":"
+textToQname = NE.fromList . T.splitOn ":"
 
 basename :: QName -> Text
-basename = last
+basename = NE.last
 
-parent :: QName -> QName
-parent = init
+parent :: QName -> Maybe QName
+parent q = 
+    case NE.init q of
+        [] -> Nothing
+        xs -> Just $ NE.fromList xs
 
 isParentOf :: QName -> QName -> Bool
-isParentOf p c = isPrefixOf p c && length p < length c
+isParentOf p c = NE.isPrefixOf (NE.toList p) c && NE.length p < NE.length c
 
 isChildOf :: QName -> QName -> Bool
 isChildOf = flip isParentOf
 
+-- | Find the QName in the list whose suffix matches the given QName
 shortNameOf :: QName -> [QName] -> Either Text QName
 shortNameOf qn qns =
-    let xs = filter (isSuffixOf qn) qns
+    let xs = filter (isSuffixOf (NE.toList qn)) (map NE.toList qns)
     in case xs of
         [] -> Left $ T.pack $ "no matching QName for " ++ show (qnameToText qn)
-        [x] -> Right x
-        _ -> Left $ T.pack $ "multiple matching QNames" ++ show (map qnameToText xs)
+        [x] -> Right (NE.fromList x)
+        _ -> 
+            let xs' = map NE.fromList xs
+            in Left $ T.pack $ "multiple matching QNames" ++ show (map qnameToText xs')
+
+-- | Find the shortest suffix of each QName in the list that is unique
+toShortNames :: [QName] -> [QName]
+toShortNames qns = map findShortest qns
+    -- Naive implementation, but we don't expect many QNames
+    where
+        findShortest :: QName -> QName
+        findShortest qn = 
+            case NE.filter isUniqueSuffix $ suffixes qn of
+                [] -> error "no unique suffix found"
+                (x : _) -> x
+
+        isUniqueSuffix :: QName -> Bool
+        isUniqueSuffix candidate =
+            length (filter (myIsSuffixOf candidate) qns) == 1
+
+        myIsSuffixOf :: QName -> QName -> Bool
+        myIsSuffixOf x y = NE.toList x `isSuffixOf` NE.toList y
+
+        suffixes :: QName -> NonEmpty QName
+        suffixes = NE.reverse . NE.tails1
 
 fromCsvAccount :: CsvAccount -> Account
 fromCsvAccount (CsvAccount {csvaName = name, csvaNumber = num}) =
