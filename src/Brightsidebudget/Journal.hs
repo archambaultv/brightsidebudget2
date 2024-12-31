@@ -2,6 +2,7 @@ module Brightsidebudget.Journal
     ( 
         loadJournal,
         saveJournal,
+        loadAndValidateJournal,
         validateJournal,
         failedAssertion,
         actualAssertionAmount
@@ -12,7 +13,7 @@ where
 import Data.Text (Text)
 import Control.Monad (unless)
 import Data.Time.Calendar (addDays)
-import Control.Monad.Except (ExceptT)
+import Control.Monad.Except (ExceptT, liftEither)
 import Brightsidebudget.Data (Journal(..), Account(..), JLoadConfig(..), JSaveConfig(..), WhichDate(..),
                              ABalance, Assertion(..), Amount, AssertionType(..))
 import Brightsidebudget.Account (loadAccounts, validateAccounts, saveAccounts)
@@ -38,6 +39,9 @@ validateJournal (Journal {jAccounts = accs, jTxns = txns, jAssertions = as, jTar
     as2 <- validateAssertions fullQn as
     targets2 <- validateBudgetTargets fullQn targets
     pure $ Journal accs txns2 as2 targets2
+
+loadAndValidateJournal :: JLoadConfig -> ExceptT Text IO Journal
+loadAndValidateJournal config = loadJournal config >>= liftEither . validateJournal
 
 saveJournal :: JSaveConfig -> Journal -> IO ()
 saveJournal journalConfig journal = do

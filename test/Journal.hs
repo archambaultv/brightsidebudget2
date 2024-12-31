@@ -11,7 +11,7 @@ import Test.Tasty.HUnit
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
 import Brightsidebudget (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
-    loadJournal, validateJournal, saveJournal, JSaveConfig(..))
+    loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertion)
 
 myRunExceptT :: (Show e) => ExceptT e IO a -> IO ()
 myRunExceptT m = do
@@ -21,7 +21,15 @@ myRunExceptT m = do
         Right _ -> pure ()
 
 journalTests :: TestTree
-journalTests = testGroup "Journal" [loadJournalTest, validateJournalTest1, saveAndReloadJournalTest]
+journalTests = testGroup "Journal" [
+                    loadJournalTest,
+                    validateJournalTest1,
+                    saveAndReloadJournalTest,
+                    txnTest1,
+                    assertionsTest1,
+                    assertionsTest2,
+                    assertionsTest3
+                    ]
 
 config :: JLoadConfig
 config = JLoadConfig {
@@ -72,3 +80,36 @@ saveAndReloadJournalTest = testCase "saveAndReloadJournal" $ myRunExceptT $ do
     liftIO $ saveJournal saveConfig journal
     reloadedJournal <- loadJournal reloadConfig
     liftIO $ assertEqual "Journals should be equal" journal reloadedJournal
+
+assertionsTest1 :: TestTree
+assertionsTest1 = testCase "All assertions OK" $ myRunExceptT $ do
+    journal <- loadAndValidateJournal config
+    let (_, failed) = failedAssertion journal
+    liftIO $ assertEqual "Assertions OK" [] failed 
+
+assertionsTest2 :: TestTree
+assertionsTest2 = testCase "Assertions with no txns" $ myRunExceptT $ do
+    j <- loadAndValidateJournal config
+    let journal = j {jTxns = []}
+    let (_, failed) = failedAssertion journal
+    liftIO $ assertEqual "Assertions no txns" 7 (length failed)
+
+-- | Test duplicate balance assertion
+assertionsTest3 :: TestTree
+assertionsTest3 = testCase "duplicate assertion" $ myRunExceptT $ do
+    j <- loadAndValidateJournal config
+    let dup = jAssertions j !! 0
+    let journal = j {jAssertions = [dup, dup]}
+    case validateJournal journal of
+        Left _ -> pure ()
+        Right _ -> liftIO $ assertFailure "Should have failed"
+
+-- | Test duplicate txn id
+txnTest1 :: TestTree
+txnTest1 = testCase "duplicate txn id" $ myRunExceptT $ do
+    j <- loadAndValidateJournal config
+    let txn = jTxns j !! 0
+    let journal = j {jTxns = [txn, txn]}
+    case validateJournal journal of
+        Left _ -> pure ()
+        Right _ -> liftIO $ assertFailure "Should have failed"
