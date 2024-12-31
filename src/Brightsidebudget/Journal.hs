@@ -2,18 +2,24 @@ module Brightsidebudget.Journal
     ( 
         loadJournal,
         saveJournal,
-        validateJournal
+        validateJournal,
+        failedAssertion,
+        actualAssertionAmount
+
     )
 where
 
 import Data.Text (Text)
 import Control.Monad (unless)
+import Data.Time.Calendar (addDays)
 import Control.Monad.Except (ExceptT)
-import Brightsidebudget.Data (Journal(..), Account(..), JLoadConfig(..), JSaveConfig(..))
+import Brightsidebudget.Data (Journal(..), Account(..), JLoadConfig(..), JSaveConfig(..), WhichDate(..),
+                             ABalance, Assertion(..), Amount, AssertionType(..))
 import Brightsidebudget.Account (loadAccounts, validateAccounts, saveAccounts)
 import Brightsidebudget.Txn (loadTxns, validateTxns, saveTxnsMultipleFiles)
 import Brightsidebudget.Assertion (loadAssertions, validateAssertions, saveAssertions)
 import Brightsidebudget.Budget (loadBudgetTargets, validateBudgetTargets, saveBudgetTargets)
+import Brightsidebudget.ABalance (aBalanceMapTxn, aBalance)
 
 -- | Load a journal from a configuration
 loadJournal :: JLoadConfig -> ExceptT Text IO Journal
@@ -42,3 +48,24 @@ saveJournal journalConfig journal = do
     unless (null as) (saveAssertions (jsAssertions journalConfig) as)
     let ts = jTargets journal
     unless (null ts) (saveBudgetTargets (jsTargets journalConfig) ts)
+
+-- | Find all the assertions that failed, with the actual balance map
+failedAssertion :: Journal -> (ABalance, [Assertion])
+failedAssertion (Journal {jTxns = txns, jAssertions = as}) =
+    let balance = aBalanceMapTxn StmtDate txns
+        failed = filter (not . checkAssertion balance) as
+    in (balance, failed)
+
+    where checkAssertion :: ABalance -> Assertion -> Bool
+          checkAssertion balance a@(Assertion {baAmount = amt}) =
+              let actual = actualAssertionAmount balance a
+              in actual == amt
+
+actualAssertionAmount :: ABalance -> Assertion -> Amount
+actualAssertionAmount balance (Assertion {baType = at, baAccount = acc}) =
+    case at of
+        BalanceAssertion d -> aBalance balance acc d
+        FlowAssertion d1 d2 ->
+            let m1 = aBalance balance acc (addDays (-1) d1)
+                m2 = aBalance balance acc d2
+            in m2 - m1

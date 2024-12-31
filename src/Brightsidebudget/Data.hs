@@ -9,6 +9,9 @@ module Brightsidebudget.Data
     Txn(..),
     Posting(..),
     CsvTxn(..),
+    ABalance,
+    AFlow,
+    WhichDate(..),
     AssertionType(..),
     Assertion(..),
     CsvAssertion(..),
@@ -22,6 +25,8 @@ module Brightsidebudget.Data
 
 import Data.Text (Text)
 import Data.Time.Calendar (Day)
+import qualified Data.HashMap.Strict as HM
+import qualified Data.Map.Strict as M
 import Data.ByteString.UTF8 (ByteString, fromString)
 import Data.Csv (FromNamedRecord(..), ToNamedRecord(..), DefaultOrdered(..), namedRecord, (.=), header, (.:))
 
@@ -50,6 +55,11 @@ instance ToNamedRecord CsvAccount where
         fieldCompte .= name, fieldNumero .= number]
 instance DefaultOrdered CsvAccount where
     headerOrder _ = header [fieldCompte, fieldNumero]
+
+type ABalance = HM.HashMap QName (M.Map Day Amount)
+type AFlow = HM.HashMap QName (M.Map Day Amount)
+
+data WhichDate = StmtDate | TxnDate deriving (Show, Eq)
 
 data Txn = Txn {
     txnId :: Int,
