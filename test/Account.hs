@@ -48,9 +48,11 @@ toShortNamesTest = testCase "toShortNames" $ do
                    "A" :| ["B", "D"],
                    "A" :| [],
                    "A" :| ["B"]]
-    let shortNames = A.toShortNames qnames
+        zeLength ("A" :| ["B", "C"]) = 2
+        zeLength _ = 1
+    let shortNames = A.toShortNames zeLength qnames
     assertEqual "toShortNames" 4 (length shortNames)
-    assertEqual "toShortNames" ("C" :| []) (shortNames !! 0)
+    assertEqual "toShortNames" ("B" :| ["C"]) (shortNames !! 0)
     assertEqual "toShortNames" ("D" :| []) (shortNames !! 1)
     assertEqual "toShortNames" ("A" :| []) (shortNames !! 2)
     assertEqual "toShortNames" ("B" :| []) (shortNames !! 3)

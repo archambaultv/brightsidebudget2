@@ -24,9 +24,10 @@ import Data.Text (Text)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.List (isSuffixOf)
-import qualified Data.HashSet as HS
+import qualified Data.HashMap.Strict as HM
 import qualified Data.ByteString.Lazy as BL
 import Data.Foldable (traverse_)
+import Control.Monad (unless)
 import Control.Monad.Except (ExceptT, throwError)
 import qualified Data.Text as T
 import qualified Data.Vector as V
@@ -77,8 +78,8 @@ shortNameOf qn qns =
             in Left $ T.pack $ "multiple matching QNames" ++ show (map qnameToText xs')
 
 -- | Find the shortest suffix of each QName in the list that is unique
-toShortNames :: [QName] -> [QName]
-toShortNames qns = map findShortest qns
+toShortNames :: (QName -> Int) -> [QName] -> [QName]
+toShortNames qMinLength qns = map findShortest qns
     -- Naive implementation, but we don't expect many QNames
     where
         findShortest :: QName -> QName
@@ -95,7 +96,13 @@ toShortNames qns = map findShortest qns
         myIsSuffixOf x y = NE.toList x `isSuffixOf` NE.toList y
 
         suffixes :: QName -> NonEmpty QName
-        suffixes = NE.reverse . NE.tails1
+        suffixes q =
+            let minLength = max (qMinLength q) 1
+                s = NE.reverse $ NE.tails1 q
+                s2 = NE.filter (\x -> NE.length x >= minLength) $ s
+            in if null s2
+               then NE.singleton $ NE.last s
+               else NE.fromList s2
 
 fromCsvAccount :: CsvAccount -> Account
 fromCsvAccount (CsvAccount {csvaName = name, csvaNumber = num}) =
@@ -115,10 +122,11 @@ validateAccount (Account {aName = name, aNumber = num}) = do
 validateAccounts :: [Account] -> Either Text ()
 validateAccounts accs = do
     traverse_ validateAccount accs
-    let xs = HS.fromList $ map aName accs
-    if length xs == length accs
-    then Right ()
-    else Left "Duplicate account names"
+    -- check for duplicate txn ids
+    let ids = map aName accs
+    let ids_set = HM.fromListWith (+) $ zip ids (repeat (1 :: Int))
+    let dups = filter ((> 1) . snd) $ HM.toList ids_set
+    unless (null dups) (Left $ T.pack $ "duplicate accounts: " ++ show dups)
 
 loadCsvAccounts :: FilePath -> ExceptT Text IO [CsvAccount]
 loadCsvAccounts filePath = do
