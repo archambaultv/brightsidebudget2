@@ -68,7 +68,7 @@ loadJournalTest = testCase "loadJournal" $ myRunExceptT $ do
     liftIO $ assertEqual "Nb of accounts" 17 (length (jAccounts journal))
     liftIO $ assertEqual "Nb of txns" 2 (length (jTxns journal))
     liftIO $ assertEqual "Nb of assertions" 8 (length (jAssertions journal))
-    liftIO $ assertEqual "Nb of targets" 4 (length (jTargets journal))
+    liftIO $ assertEqual "Nb of targets" 5 (length (jTargets journal))
     let txn0 = jTxns journal !! 0
     let ps0 = txnPostings txn0 !! 0
     liftIO $ assertEqual "Short QName" ("Compte courant" :| []) (pAccount ps0)

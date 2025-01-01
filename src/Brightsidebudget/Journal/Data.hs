@@ -145,7 +145,7 @@ data CsvBudgetTarget = CsvBudgetTarget {
     csvbtComment :: Text,
     csvbtStart :: Text,
     csvbtFrequency :: Text,
-    csvbtInterval :: Int,
+    csvbtInterval :: Maybe Int,
     csvbtUntil :: Text
 } deriving (Show, Eq)
 
@@ -165,7 +165,7 @@ instance DefaultOrdered CsvBudgetTarget where
     headerOrder _ = header ["Compte", "Montant", "Commentaire", start_date, frequency, "Intervalle", "Date de fin"]
 
 
-data BudgetFrequency = BWeekly | BMonthly | BYearly deriving (Show, Eq)
+data BudgetFrequency = BNone | BWeekly | BMonthly | BYearly deriving (Show, Eq)
 
 data Journal = Journal {
     jAccounts :: [Account],

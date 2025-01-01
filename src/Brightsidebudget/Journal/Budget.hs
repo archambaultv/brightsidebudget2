@@ -25,26 +25,32 @@ import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
 import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
 
 fromCsvBudgetTarget :: CsvBudgetTarget -> Either Text BudgetTarget
-fromCsvBudgetTarget (CsvBudgetTarget {csvbtAccount = acc, csvbtAmount = amt, csvbtComment = cmt, csvbtStart = start, csvbtFrequency = freq, csvbtInterval = interval, csvbtUntil = until_}) = do
+fromCsvBudgetTarget (CsvBudgetTarget {csvbtAccount = acc, csvbtAmount = amt, csvbtComment = cmt,
+                                      csvbtStart = start, csvbtFrequency = freq, csvbtInterval = interval,
+                                      csvbtUntil = until_}) = do
     start' <- dateAsDay start
     until' <- if T.null $ T.strip until_
                 then pure Nothing
                 else Just <$> dateAsDay until_
-    freq' <- case freq of
+    freq' <- case T.strip freq of
+        "" -> Right BNone
         "Hebdomadaire" -> Right BWeekly
         "Mensuel" -> Right BMonthly
         "Annuel" -> Right BYearly
         _ -> Left $ "Unknown frequency: " <> freq
-    pure $ BudgetTarget (textToQname acc) (doubleToAmount amt) cmt start' freq' interval until'
+    let interval' = maybe 1 id interval
+    pure $ BudgetTarget (textToQname acc) (doubleToAmount amt) cmt start' freq' interval' until'
 
 toCsvBudgetTarget :: BudgetTarget -> CsvBudgetTarget
 toCsvBudgetTarget (BudgetTarget {btAccount = acc, btAmount = amt, btComment = cmt, btStart = start, btFrequency = freq, btInterval = interval, btUntil = until_}) =
     let freqText = case freq of
+            BNone -> ""
             BWeekly -> "Hebdomadaire"
             BMonthly -> "Mensuel"
             BYearly -> "Annuel"
         until' = maybe "" dayAsDate until_
-    in CsvBudgetTarget (qnameToText acc) (amountToDouble amt) cmt (dayAsDate start) freqText interval until'
+        interval' = if freq == BNone then Nothing else Just interval
+    in CsvBudgetTarget (qnameToText acc) (amountToDouble amt) cmt (dayAsDate start) freqText interval' until'
 
 validateBudgetTarget :: [QName] -> BudgetTarget -> Either Text BudgetTarget
 validateBudgetTarget knownQn (BudgetTarget {btAccount = acc, btAmount = amt, btComment = cmt, btStart = start, btFrequency = freq, btInterval = interval, btUntil = until_}) = do
