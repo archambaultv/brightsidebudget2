@@ -39,7 +39,7 @@ fromCsvBudgetTarget (CsvBudgetTarget {csvbtAccount = acc, csvbtAmount = amt, csv
     until' <- if T.null $ T.strip until_
                 then pure Nothing
                 else Just <$> dateAsDay until_
-    when (start' > maybe start' id until') (Left "Start date is after end date")
+    when (start' > maybe start' id until') (Left $ "Start date " <> start <> " is after end date " <> T.pack (show until'))
     freq' <- case T.strip freq of
         "" -> Right BNone
         "Hebdomadaire" -> Right BWeekly
