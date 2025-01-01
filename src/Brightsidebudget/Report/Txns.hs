@@ -33,7 +33,8 @@ toPostingLines qnameLength j =
         fromTxn m txn = map (\p -> PostingLine txn p m) (txnPostings txn)
 
 postingLineMaxAccDepth :: [PostingLine] -> Int
-postingLineMaxAccDepth = maximum . map (length . pAccount . plPosting)
+postingLineMaxAccDepth [] = 1
+postingLineMaxAccDepth xs = maximum $ map (length . pAccount . plPosting) xs
 
 postingLineHeader :: Int -> [Text]
 postingLineHeader maxDepth =
