@@ -14,7 +14,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
 import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
     loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertions,
-    toShortNames, Account(..))
+    toShortNames, Account(..), loadValidateAndCheckJournal)
 
 myRunExceptT :: (Show e) => ExceptT e IO a -> IO ()
 myRunExceptT m = do
@@ -27,6 +27,7 @@ journalTests :: TestTree
 journalTests = testGroup "Journal" [
                     loadJournalTest,
                     validateJournalTest1,
+                    checkJournalTest,
                     saveAndReloadJournalTest,
                     accountTest1,
                     toShortNamesTest,
@@ -66,7 +67,7 @@ loadJournalTest = testCase "loadJournal" $ myRunExceptT $ do
     journal <- loadJournal config
     liftIO $ assertEqual "Nb of accounts" 17 (length (jAccounts journal))
     liftIO $ assertEqual "Nb of txns" 2 (length (jTxns journal))
-    liftIO $ assertEqual "Nb of assertions" 7 (length (jAssertions journal))
+    liftIO $ assertEqual "Nb of assertions" 8 (length (jAssertions journal))
     liftIO $ assertEqual "Nb of targets" 4 (length (jTargets journal))
     let txn0 = jTxns journal !! 0
     let ps0 = txnPostings txn0 !! 0
@@ -78,6 +79,12 @@ validateJournalTest1 = testCase "validateJournal" $ myRunExceptT $ do
     let txn0 = jTxns journal !! 0
     let ps0 = txnPostings txn0 !! 0
     liftIO $ assertEqual "Full QName" ("Actifs" :| ["Compte courant"]) (pAccount ps0)
+
+checkJournalTest :: TestTree
+checkJournalTest = testCase "checkJournal" $ myRunExceptT $ do
+    journal <- loadValidateAndCheckJournal config
+    let (_, errors) = failedAssertions journal
+    liftIO $ assertEqual "Nb of errors" 0 (length errors)
 
 saveAndReloadJournalTest :: TestTree
 saveAndReloadJournalTest = testCase "saveAndReloadJournal" $ myRunExceptT $ do
@@ -98,7 +105,7 @@ assertionsTest2 = testCase "Assertions with no txns" $ myRunExceptT $ do
     j <- loadAndValidateJournal config
     let journal = j {jTxns = []}
     let (_, failed) = failedAssertions journal
-    liftIO $ assertEqual "Assertions no txns" 7 (length failed)
+    liftIO $ assertEqual "Assertions no txns" 8 (length failed)
 
 -- | Test duplicate balance assertion
 assertionsTest3 :: TestTree

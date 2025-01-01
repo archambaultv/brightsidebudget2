@@ -61,7 +61,7 @@ loadValidateAndCheckJournal config = do
         then pure journal
         else throwError $ T.intercalate "\n" $ map (assertionErrors bMap) errors
 
-    where 
+    where
         assertionErrors :: ABalance -> Assertion -> Text
         assertionErrors bMap as =
             let actualAmnt = actualAssertionAmount bMap as
@@ -126,8 +126,9 @@ shortQnameJournal f (Journal {jAccounts = accs, jTxns = txns, jAssertions = as, 
 
 -- | Find all the assertions that failed, with the actual balance map
 failedAssertions :: Journal -> (ABalance, [Assertion])
-failedAssertions (Journal {jTxns = txns, jAssertions = as}) =
-    let balance = aBalanceMapTxn StmtDate txns
+failedAssertions (Journal {jAccounts = accs, jTxns = txns, jAssertions = as}) =
+    let names = map aName accs
+        balance = aBalanceMapTxn StmtDate (Just names) txns
         failed = filter (not . checkAssertion balance) as
     in (balance, failed)
 
