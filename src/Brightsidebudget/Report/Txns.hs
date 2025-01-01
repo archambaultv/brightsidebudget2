@@ -24,7 +24,7 @@ toPostingLines :: (QName -> Int) -> Journal -> [PostingLine]
 toPostingLines qnameLength j =
     let txns = jTxns j
         names = map aName $ jAccounts j
-        shortQnames = toShortNames qnameLength names 
+        shortQnames = toShortNames qnameLength names
         shortMap = HM.fromList $ zip names shortQnames
     in concatMap (fromTxn shortMap) txns
 

@@ -135,7 +135,7 @@ data BudgetTarget = BudgetTarget {
     btComment :: Text,
     btStart :: Day,
     btFrequency :: BudgetFrequency,
-    btInterval :: Int,
+    btInterval :: Integer,
     btUntil :: Maybe Day
 } deriving (Show, Eq)
 
@@ -145,7 +145,7 @@ data CsvBudgetTarget = CsvBudgetTarget {
     csvbtComment :: Text,
     csvbtStart :: Text,
     csvbtFrequency :: Text,
-    csvbtInterval :: Maybe Int,
+    csvbtInterval :: Maybe Integer,
     csvbtUntil :: Text
 } deriving (Show, Eq)
 
