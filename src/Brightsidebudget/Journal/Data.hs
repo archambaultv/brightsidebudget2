@@ -109,23 +109,25 @@ data AssertionType = BalanceAssertion Day
 data Assertion = Assertion {
     baType :: AssertionType,
     baAccount :: QName,
-    baAmount :: Amount
+    baAmount :: Amount,
+    baComment :: Text
 } deriving (Show, Eq)
 
 data CsvAssertion = CsvAssertion {
     csvbaDate1 :: Text,
     csvbaAccount :: Text,
     csvbaAmount :: Double,
+    csvbaComment :: Text,
     csvbaDate2 :: Text
 } deriving (Show, Eq)
 
 instance FromNamedRecord CsvAssertion where
-    parseNamedRecord m = CsvAssertion <$> m .: "Date" <*> m .: "Compte" <*> m .: "Montant" <*> m .: "Date de fin pour flux"
+    parseNamedRecord m = CsvAssertion <$> m .: "Date" <*> m .: "Compte" <*> m .: "Montant" <*> m .: "Commentaire" <*> m .: "Date de fin pour flux"
 instance ToNamedRecord CsvAssertion where
-    toNamedRecord (CsvAssertion date acct amt mdate) = namedRecord [
-        "Date" .= date, "Compte" .= acct, "Montant" .= amt, "Date de fin pour flux" .= mdate]
+    toNamedRecord (CsvAssertion date acct amt comment mdate) = namedRecord [
+        "Date" .= date, "Compte" .= acct, "Montant" .= amt, "Commentaire" .= comment, "Date de fin pour flux" .= mdate]
 instance DefaultOrdered CsvAssertion where
-    headerOrder _ = header ["Date", "Compte", "Montant", "Date de fin pour flux"]
+    headerOrder _ = header ["Date", "Compte", "Montant", "Commentaire", "Date de fin pour flux"]
 
 data BudgetTarget = BudgetTarget {
     btAccount :: QName,

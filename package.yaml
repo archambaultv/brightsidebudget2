@@ -21,16 +21,16 @@ description:         Please see the README on GitHub at <https://github.com/arch
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
+- cassava
+- containers
+- directory
+- mtl
 - text
 - time
-- cassava
-- directory
-- bytestring
-- mtl
-- vector
-- containers
 - unordered-containers
 - utf8-string
+- vector
 
 ghc-options:
 - -Wall

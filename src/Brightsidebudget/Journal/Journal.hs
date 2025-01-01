@@ -87,9 +87,9 @@ shortQnameJournal f (Journal {jAccounts = accs, jTxns = txns, jAssertions = as, 
                 else error $ "shortQnamePosting: " ++ show acc ++ " not found"
 
         shortQnameAssertion :: HM.HashMap QName QName -> Assertion -> Assertion
-        shortQnameAssertion sqns (Assertion {baAccount = acc, baAmount = amt, baType = at}) =
+        shortQnameAssertion sqns (Assertion {baAccount = acc, baAmount = amt, baType = at, baComment = comment}) =
             let acc' = sqns HM.! acc
-            in Assertion at acc' amt
+            in Assertion at acc' amt comment
 
         shortQnameTarget :: HM.HashMap QName QName -> BudgetTarget -> BudgetTarget
         shortQnameTarget sqns (BudgetTarget {btAccount = acc, btAmount = amt, btComment = cmt, btStart = st, btFrequency = fr, btInterval = iv, btUntil = un}) =

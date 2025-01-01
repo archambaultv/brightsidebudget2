@@ -23,26 +23,27 @@ import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
 import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
 
 fromCsvAssertion :: CsvAssertion -> Either Text Assertion
-fromCsvAssertion (CsvAssertion {csvbaDate1 = d1, csvbaAccount = acc, csvbaAmount = amt, csvbaDate2 = d2}) = do
+fromCsvAssertion (CsvAssertion {csvbaDate1 = d1, csvbaAccount = acc, csvbaAmount = amt, csvbaDate2 = d2,
+                                csvbaComment = comment}) = do
     d1' <- dateAsDay d1
     if T.null $ T.strip d2
-    then pure $ Assertion (BalanceAssertion d1') (textToQname acc) (doubleToAmount amt)
+    then pure $ Assertion (BalanceAssertion d1') (textToQname acc) (doubleToAmount amt) comment
     else do 
         d2' <- dateAsDay d2
-        pure $ Assertion (FlowAssertion d1' d2') (textToQname acc) (doubleToAmount amt)
+        pure $ Assertion (FlowAssertion d1' d2') (textToQname acc) (doubleToAmount amt) comment
 
 toCsvAssertion :: Assertion -> CsvAssertion
-toCsvAssertion (Assertion {baType = at, baAccount = acc, baAmount = amt}) =
+toCsvAssertion (Assertion {baType = at, baAccount = acc, baAmount = amt, baComment = comment}) =
     let (d1, d2) = case at of
             BalanceAssertion d -> (dayAsDate d, T.empty)
             FlowAssertion d1' d2' -> (dayAsDate d1', dayAsDate d2')
-    in CsvAssertion d1 (qnameToText acc) (amountToDouble amt) d2
+    in CsvAssertion d1 (qnameToText acc) (amountToDouble amt) comment d2
 
 validateAssertion :: [QName] -> Assertion -> Either Text Assertion
-validateAssertion knownQn (Assertion {baType = at, baAccount = acc, baAmount = amt}) = do
+validateAssertion knownQn (Assertion {baType = at, baAccount = acc, baAmount = amt, baComment = comment}) = do
     validateQname acc
     fullQn <- shortNameOf acc knownQn
-    pure $ Assertion at fullQn amt
+    pure $ Assertion at fullQn amt comment
 
 validateAssertions :: [QName] -> [Assertion] -> Either Text [Assertion]
 validateAssertions knownQn assertions = do
