@@ -30,12 +30,7 @@ toPostingLines qnameLength j =
 
     where 
         fromTxn :: HashMap QName QName -> Txn -> [PostingLine]
-        fromTxn m txn = map (fromPs m txn) (txnPostings txn)
-
-        fromPs :: HashMap QName QName -> Txn -> Posting -> PostingLine
-        fromPs m txn p =
-            let acc = pAccount p
-            in PostingLine txn p (m HM.! acc)
+        fromTxn m txn = map (\p -> PostingLine txn p m) (txnPostings txn)
 
 postingLineMaxAccDepth :: [PostingLine] -> Int
 postingLineMaxAccDepth = maximum . map (length . pAccount . plPosting)
@@ -51,10 +46,11 @@ postingLineHeader maxDepth =
  
 postingLineToText :: Int -> PostingLine -> [Text]
 postingLineToText maxDepth pl =
-    let txn = plTxn pl
+    let namesMap = plShortNames pl
+        txn = plTxn pl
         posting = plPosting pl
         acc = pAccount posting
-        shortAcc = qnameToText $ plShortName pl
+        shortAcc = qnameToText $ namesMap HM.! acc
         amount = T.pack $ show $ amountToDouble $ pAmount posting
         comment = pComment posting
         statementDesc = pStmtDesc posting
@@ -66,7 +62,7 @@ postingLineToText maxDepth pl =
         year = T.pack $ take 4 dateStr
         month = T.pack $ take 2 $ drop 5 dateStr
         yearMonth = year <> "-" <> month
-        txnAccounts = T.intercalate " | " $ nub $ map (qnameToText . pAccount) (txnPostings txn)
+        txnAccounts = T.intercalate " | " $ nub $ map (qnameToText . (namesMap HM.!) . pAccount) (txnPostings txn)
     in [ txnNo, date, qnameToText acc, shortAcc, amount, comment, statementDesc, statementDate ]
        ++ accParts
        ++ [ year, month, yearMonth, txnAccounts ]

@@ -4,10 +4,11 @@ module Brightsidebudget.Report.Data (
 
 where
 
+import qualified Data.HashMap.Strict as HM
 import Brightsidebudget.Journal (Txn(..), Posting(..), QName)
 
 data PostingLine = PostingLine {
     plTxn :: Txn,
     plPosting :: Posting,
-    plShortName :: QName
+    plShortNames :: HM.HashMap QName QName
 }
