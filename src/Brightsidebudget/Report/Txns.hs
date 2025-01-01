@@ -14,7 +14,6 @@ import qualified Data.Text as T
 import Data.List (nub)
 import qualified Data.List.NonEmpty as NE
 import Data.HashMap.Strict (HashMap)
-import Data.Time.Calendar (showGregorian)
 import qualified Data.HashMap.Strict as HM
 import Brightsidebudget.Journal (Journal(..), dayAsDate, Txn(..), Posting(..), qnameToText,
     amountToDouble, QName, Account(..), toShortNames)
@@ -54,14 +53,13 @@ postingLineToText maxDepth pl =
         shortAcc = qnameToText $ namesMap HM.! acc
         amount = T.pack $ show $ amountToDouble $ pAmount posting
         comment = pComment posting
-        statementDesc = pStmtDesc posting
-        statementDate = maybe "" dayAsDate $ pStmtDate posting
         date = dayAsDate $ txnDate txn
+        statementDesc = pStmtDesc posting
+        statementDate = maybe date dayAsDate $ pStmtDate posting
         txnNo = T.pack $ show $ txnId txn
         accParts = NE.take maxDepth acc ++ replicate (maxDepth - length acc) ""
-        dateStr = showGregorian $ txnDate txn
-        year = T.pack $ take 4 dateStr
-        month = T.pack $ take 2 $ drop 5 dateStr
+        year = T.take 4 date
+        month = T.take 2 $ T.drop 5 date
         yearMonth = year <> "-" <> month
         txnAccounts = T.intercalate " | " $ nub $ map (qnameToText . (namesMap HM.!) . pAccount) (txnPostings txn)
     in [ txnNo, date, qnameToText acc, shortAcc, amount, comment, statementDesc, statementDate ]
