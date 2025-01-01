@@ -1,28 +1,33 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Brightsidebudget.Journal.Journal
     ( 
         loadJournal,
-        saveJournal,
-        loadAndValidateJournal,
         validateJournal,
-        failedAssertion,
+        loadAndValidateJournal,
+        loadValidateAndCheckJournal,
+        saveJournal,
+        failedAssertions,
         actualAssertionAmount
 
     )
 where
 
 import Data.Text (Text)
+import qualified Data.Text as T
 import Control.Monad (unless)
 import Data.Time.Calendar (addDays)
 import qualified Data.HashMap.Strict as HM
-import Control.Monad.Except (ExceptT, liftEither)
+import Control.Monad.Except (ExceptT, liftEither, throwError)
 import Brightsidebudget.Journal.Data (Journal(..), Account(..), JLoadConfig(..), JSaveConfig(..), WhichDate(..),
                              ABalance, Assertion(..), Amount, AssertionType(..), QName, Txn(..), Posting(..),
                              BudgetTarget(..))
-import Brightsidebudget.Journal.Account (loadAccounts, validateAccounts, saveAccounts, toShortNames)
+import Brightsidebudget.Journal.Account (loadAccounts, validateAccounts, saveAccounts, toShortNames, qnameToText)
 import Brightsidebudget.Journal.Txn (loadTxns, validateTxns, saveTxnsMultipleFiles)
-import Brightsidebudget.Journal.Assertion (loadAssertions, validateAssertions, saveAssertions)
+import Brightsidebudget.Journal.Assertion (loadAssertions, validateAssertions, saveAssertions, showDate)
 import Brightsidebudget.Journal.Budget (loadBudgetTargets, validateBudgetTargets, saveBudgetTargets)
 import Brightsidebudget.Journal.ABalance (aBalanceMapTxn, aBalance)
+import Brightsidebudget.Journal.Amount (amountToDouble)
 
 -- | Load a journal from a configuration. This function should be followed by
 --   validateJournal, since other functions assume the QName to be full qnames.
@@ -43,8 +48,30 @@ validateJournal (Journal {jAccounts = accs, jTxns = txns, jAssertions = as, jTar
     targets2 <- validateBudgetTargets fullQn targets
     pure $ Journal accs txns2 as2 targets2
 
+-- | Load and validate a journal from a configuration
 loadAndValidateJournal :: JLoadConfig -> ExceptT Text IO Journal
 loadAndValidateJournal config = loadJournal config >>= liftEither . validateJournal
+
+-- | Load and validate a journal from a configuration, and check the assertions
+loadValidateAndCheckJournal :: JLoadConfig -> ExceptT Text IO Journal
+loadValidateAndCheckJournal config = do
+    journal <- loadAndValidateJournal config
+    let (bMap, errors) = failedAssertions journal
+    if null errors
+        then pure journal
+        else throwError $ T.intercalate "\n" $ map (assertionErrors bMap) errors
+
+    where 
+        assertionErrors :: ABalance -> Assertion -> Text
+        assertionErrors bMap as =
+            let actualAmnt = actualAssertionAmount bMap as
+                expectedAmnt = baAmount as
+                diff = expectedAmnt - actualAmnt
+                acc = qnameToText $ baAccount as
+                date = showDate $ baType as
+                showAmnt = T.pack . show . amountToDouble
+            in T.concat ["Assertion failed: ", acc, " on ", date, " expected ", showAmnt expectedAmnt, " but got ",
+                         showAmnt actualAmnt, " (diff: ", showAmnt diff, ")"]
 
 -- | Save journal to files. Works on validated journal
 saveJournal :: JSaveConfig -> Journal -> IO ()
@@ -98,8 +125,8 @@ shortQnameJournal f (Journal {jAccounts = accs, jTxns = txns, jAssertions = as, 
 
 
 -- | Find all the assertions that failed, with the actual balance map
-failedAssertion :: Journal -> (ABalance, [Assertion])
-failedAssertion (Journal {jTxns = txns, jAssertions = as}) =
+failedAssertions :: Journal -> (ABalance, [Assertion])
+failedAssertions (Journal {jTxns = txns, jAssertions = as}) =
     let balance = aBalanceMapTxn StmtDate txns
         failed = filter (not . checkAssertion balance) as
     in (balance, failed)

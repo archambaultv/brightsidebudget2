@@ -13,7 +13,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
 import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
-    loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertion,
+    loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertions,
     toShortNames, Account(..))
 
 myRunExceptT :: (Show e) => ExceptT e IO a -> IO ()
@@ -90,14 +90,14 @@ saveAndReloadJournalTest = testCase "saveAndReloadJournal" $ myRunExceptT $ do
 assertionsTest1 :: TestTree
 assertionsTest1 = testCase "All assertions OK" $ myRunExceptT $ do
     journal <- loadAndValidateJournal config
-    let (_, failed) = failedAssertion journal
+    let (_, failed) = failedAssertions journal
     liftIO $ assertEqual "Assertions OK" [] failed 
 
 assertionsTest2 :: TestTree
 assertionsTest2 = testCase "Assertions with no txns" $ myRunExceptT $ do
     j <- loadAndValidateJournal config
     let journal = j {jTxns = []}
-    let (_, failed) = failedAssertion journal
+    let (_, failed) = failedAssertions journal
     liftIO $ assertEqual "Assertions no txns" 7 (length failed)
 
 -- | Test duplicate balance assertion

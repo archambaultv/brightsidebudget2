@@ -1,10 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Brightsidebudget.Journal.Assertion
     ( fromCsvAssertion,
       toCsvAssertion,
       validateAssertion,
       validateAssertions,
       loadAssertions,
-      saveAssertions
+      saveAssertions,
+      showDate,
     )
 where
 
@@ -71,3 +74,7 @@ saveAssertions :: FilePath -> [Assertion] -> IO ()
 saveAssertions filePath assertions = do
     let csvAssertions = map toCsvAssertion assertions
     BL.writeFile filePath $ encodeDefaultOrderedByName csvAssertions
+
+showDate :: AssertionType -> Text
+showDate (BalanceAssertion d) = dayAsDate d
+showDate (FlowAssertion d1 d2) = T.concat [dayAsDate d1, " - ", dayAsDate d2]

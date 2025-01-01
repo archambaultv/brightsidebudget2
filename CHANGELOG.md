@@ -11,7 +11,7 @@ and this project adheres to the
 - More unit tests
 - `verifyJournal` and `saveJournal` functions
 - Functions to compute the account flow and balance
-- Function `failedAssertion` to find the failed balance assertions
+- Function `failedAssertions` to find the failed balance assertions
 - Basic build blocks to generate reports
 
 ## 0.1.0 - 2024-12-29
