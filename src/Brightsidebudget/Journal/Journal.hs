@@ -25,7 +25,7 @@ import Brightsidebudget.Journal.Data (Journal(..), Account(..), JLoadConfig(..),
 import Brightsidebudget.Journal.Account (loadAccounts, validateAccounts, saveAccounts, toShortNames, qnameToText)
 import Brightsidebudget.Journal.Txn (loadTxns, validateTxns, saveTxnsMultipleFiles)
 import Brightsidebudget.Journal.Assertion (loadAssertions, validateAssertions, saveAssertions, showDate)
-import Brightsidebudget.Journal.Budget (loadBudgetTargets, validateBudgetTargets, saveBudgetTargets)
+import Brightsidebudget.Journal.Budget (loadBudgetTargets, validateBudgetTargets, saveBudgetTargetsMultipleFiles)
 import Brightsidebudget.Journal.ABalance (aBalanceMapTxn, aBalance)
 import Brightsidebudget.Journal.Amount (amountToDouble)
 
@@ -36,7 +36,7 @@ loadJournal (JLoadConfig {jlAccounts = accs, jlAssertions = as, jlTxns = txns, j
     accs' <- loadAccounts accs
     txns' <- loadTxns txns
     as' <-  maybe (pure []) loadAssertions as
-    targets' <-  maybe (pure []) loadBudgetTargets targets
+    targets' <-  loadBudgetTargets targets
     pure $ Journal accs' txns' as' targets'
 
 validateJournal :: Journal -> Either Text Journal
@@ -88,7 +88,7 @@ saveJournal journalConfig j =
             let as = jAssertions journal
             unless (null as) (saveAssertions (jsAssertions journalConfig) as)
             let ts = jTargets journal
-            unless (null ts) (saveBudgetTargets (jsTargets journalConfig) ts)
+            unless (null ts) (saveBudgetTargetsMultipleFiles (jsTargets journalConfig) ts)
 
 -- | Shorten the qname of the journal for txns, assertions, and targets
 shortQnameJournal :: (QName -> Int) -> Journal -> Journal

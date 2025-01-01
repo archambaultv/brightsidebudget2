@@ -8,14 +8,18 @@ module Brightsidebudget.Journal.Budget
       validateBudgetTargets,
       loadBudgetTargets,
       saveBudgetTargets,
-      targetToTxn
+      targetToTxn,
+      saveBudgetTargetsMultipleFiles
     )
 where
 
 import Data.Text (Text)
 import qualified Data.Text as T
+import Data.List (sortBy)
+import Data.Ord (comparing)
 import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import qualified Data.Vector as V
+import qualified Data.HashMap.Strict as HM
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad (when)
 import Data.Time.Calendar (addDays, addGregorianMonthsClip, addGregorianYearsClip)
@@ -75,15 +79,21 @@ loadCsvBudgetTargets filePath = do
         Left err -> throwError $ T.pack err
         Right (_, v) -> pure $ V.toList v
 
-loadBudgetTargets :: FilePath -> ExceptT Text IO [BudgetTarget]
-loadBudgetTargets filePath = do
-    csvBudgetTargets <- loadCsvBudgetTargets filePath
-    liftEither $ traverse fromCsvBudgetTarget csvBudgetTargets
+loadBudgetTargets :: [FilePath] -> ExceptT Text IO [BudgetTarget]
+loadBudgetTargets fps = do
+    csvBudgetTargets <- traverse loadCsvBudgetTargets fps
+    liftEither $ concat <$> traverse (traverse fromCsvBudgetTarget) csvBudgetTargets
 
 saveBudgetTargets :: FilePath -> [BudgetTarget] -> IO ()
 saveBudgetTargets filePath budgetTargets = do
     let csvBudgetTargets = map toCsvBudgetTarget budgetTargets
     BL.writeFile filePath $ encodeDefaultOrderedByName csvBudgetTargets
+
+saveBudgetTargetsMultipleFiles :: (BudgetTarget -> FilePath) -> [BudgetTarget] -> IO ()
+saveBudgetTargetsMultipleFiles btFile targets = do
+    let files = map btFile targets
+    let filesTable = HM.fromListWith (++) $ zip files (map (:[]) targets)
+    mapM_ (\(file, xs) -> saveBudgetTargets file (sortBy (comparing btAccount) xs)) (HM.toList filesTable)
 
 -- | Convert a budget target to a list of transactions, potentially infinite
 --   The other account is the account to which the amount is transferred

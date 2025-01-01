@@ -178,13 +178,13 @@ data JLoadConfig = JLoadConfig {
     jlAccounts :: FilePath,
     jlTxns :: [FilePath],
     jlAssertions :: Maybe FilePath,
-    jlTargets :: Maybe FilePath
+    jlTargets :: [FilePath]
 } deriving (Show, Eq)
 
 data JSaveConfig = JSaveConfig {
     jsAccounts :: FilePath,
     jsTxns :: Txn -> FilePath,
     jsAssertions :: FilePath,
-    jsTargets :: FilePath,
+    jsTargets :: BudgetTarget -> FilePath,
     jsQnameLength :: QName -> Int
 }

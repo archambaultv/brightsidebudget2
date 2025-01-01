@@ -12,7 +12,7 @@ import Test.Tasty.HUnit
 import Data.List.NonEmpty (NonEmpty(..))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
-import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..),
+import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..), QName,
     loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertions,
     toShortNames, Account(..), loadValidateAndCheckJournal)
 
@@ -37,12 +37,16 @@ journalTests = testGroup "Journal" [
                     assertionsTest3
                     ]
 
+qNameLength :: QName -> Int
+qNameLength ("Dépenses" :| ["Autres"]) = 2
+qNameLength _ = 1
+
 config :: JLoadConfig
 config = JLoadConfig {
         jlAccounts = "test/fixtures/comptes.csv",
         jlTxns = ["test/fixtures/txns.csv"],
         jlAssertions = Just "test/fixtures/soldes.csv",
-        jlTargets = Just "test/fixtures/budget.csv"
+        jlTargets = ["test/fixtures/budget.csv"]
         }
 
 saveConfig :: JSaveConfig
@@ -50,8 +54,8 @@ saveConfig = JSaveConfig {
         jsAccounts = "test/output/comptes.csv",
         jsTxns = \_ -> "test/output/txns.csv",
         jsAssertions = "test/output/soldes.csv",
-        jsTargets = "test/output/budget.csv",
-        jsQnameLength = \_ -> 1
+        jsTargets = \_ -> "test/output/budget.csv",
+        jsQnameLength = qNameLength
         }
 
 reloadConfig :: JLoadConfig
@@ -59,7 +63,7 @@ reloadConfig = JLoadConfig {
         jlAccounts = "test/output/comptes.csv",
         jlTxns = ["test/output/txns.csv"],
         jlAssertions = Just "test/output/soldes.csv",
-        jlTargets = Just "test/output/budget.csv"
+        jlTargets = ["test/output/budget.csv"]
         }
 
 loadJournalTest :: TestTree
