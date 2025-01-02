@@ -23,6 +23,7 @@ import Brightsidebudget.Utils (loadFileEnc)
 import Brightsidebudget.Journal.Data (BankCsv(..), Posting(..), Amount, QName, Txn(..), Journal(..))
 import Brightsidebudget.Journal.Calendar (dateAsDay)
 import Brightsidebudget.Journal.Amount (doubleToAmount)
+import Brightsidebudget.Journal.Journal (nextTxnId)
 
 headerNames :: BankCsv -> [Text]
 headerNames bankCsv = 
@@ -114,7 +115,7 @@ createNewTxns j classifier ps onlyAfter =
                 Nothing -> (p : acc, dict)
             ) ([], dedupDict) newPs
         acceptedTxns = mapMaybe (\p -> classifier p) newPs'
-        maxTxnId = maximum (map txnId (jTxns j))
+        maxTxnId = nextTxnId j
         newTxns = zipWith (\i t -> t {txnId = i}) [maxTxnId + 1..] acceptedTxns
     in newTxns
 

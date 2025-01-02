@@ -10,7 +10,8 @@ module Brightsidebudget.Journal.Journal
         failedAssertions,
         actualAssertionAmount,
         lastAssertionDate,
-
+        addTxns,
+        nextTxnId
     )
 where
 
@@ -163,3 +164,18 @@ lastAssertionDate j acc =
               case at of
                   BalanceAssertion d -> d
                   FlowAssertion _ d -> d
+
+nextTxnId :: Journal -> Int
+nextTxnId j | jTxns j == [] = 1
+nextTxnId j = maximum (map txnId (jTxns j)) + 1
+
+-- | Add transactions to the journal, and return the new transactions and the updated journal
+--   The added transaction are renumbered starting from the maximum txn id + 1 and validated
+addTxns :: Journal -> [Txn] -> Either Text ([Txn], Journal)
+addTxns j txns =
+    let maxTxnId = nextTxnId j
+        txns2 = zipWith (\i t -> t {txnId = i}) [maxTxnId + 1..] txns
+        fullQn = fmap aName (jAccounts j)
+    in do
+        txns3 <- validateTxns fullQn txns2
+        pure (txns3, j{ jTxns = jTxns j ++ txns3 })
