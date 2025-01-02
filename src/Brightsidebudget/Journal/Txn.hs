@@ -14,7 +14,7 @@ where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.List (groupBy, sortBy)
+import Data.List (groupBy, sortBy, intercalate)
 import Data.Ord (comparing)
 import Data.Foldable (traverse_)
 import qualified Data.Vector as V
@@ -72,11 +72,16 @@ validateTxn _ (Txn _ _ []) = Left "txn has no postings"
 validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}) =
     let txnSum = sum $ map pAmount postings
     in do 
-        when (txnSum /= 0) (Left $ T.pack $ "txn " ++ show ident ++ " does not balance")
+        when (txnSum /= 0) (Left $ errMss txnSum)
         traverse_ (validateQname . pAccount) postings
         fullQn <- traverse (flip shortNameOf knownQn . pAccount) postings
         let ps = zipWith (\p qn -> p {pAccount = qn}) postings fullQn
         pure $ Txn ident date ps
+
+    where errMss :: Integer -> Text
+          errMss txnSum = 
+            let ps = intercalate "\n" $ map (\p -> "  " ++ show p) postings
+            in T.pack $ "txn " ++ show ident ++ " does not balance. Sum is " ++ show txnSum ++ "\n" ++ ps
 
 validateTxns :: [QName] -> [Txn] -> Either Text [Txn]
 validateTxns knownQn txns = do
