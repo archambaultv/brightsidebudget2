@@ -24,7 +24,7 @@ import Data.Csv (decodeByName, encodeDefaultOrderedByName)
 import Control.Monad (unless, when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Journal.Data (Txn(..), Posting(..), CsvTxn(..), QName)
-import Brightsidebudget.Journal.Account (validateQname, textToQname, shortNameOf, qnameToText)
+import Brightsidebudget.Journal.Account (validateQname, textToQname, shortNameOf, qnameToText, isParentOf)
 import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
 import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
 import Brightsidebudget.Utils (loadFile)
@@ -72,16 +72,29 @@ validateTxn _ (Txn _ _ []) = Left "txn has no postings"
 validateTxn knownQn (Txn {txnId = ident, txnDate = date, txnPostings = postings}) =
     let txnSum = sum $ map pAmount postings
     in do 
-        when (txnSum /= 0) (Left $ errMss txnSum)
+        -- Check that the txn balances
+        when (txnSum /= 0) (Left $ sumMsg txnSum)
+        -- Check that the accounts are valid QName
         traverse_ (validateQname . pAccount) postings
+        -- Check that the accounts are in the list of known accounts
+        -- and replace the short names with the full names
         fullQn <- traverse (flip shortNameOf knownQn . pAccount) postings
         let ps = zipWith (\p qn -> p {pAccount = qn}) postings fullQn
+        -- Check that the account is not a parent account, txn only
+        -- authorized in leaf accounts
+        let parents = filter (\p -> any ((pAccount p) `isParentOf` ) knownQn) ps
+        when (not $ null parents) (Left $ parentMsg parents)
         pure $ Txn ident date ps
 
-    where errMss :: Integer -> Text
-          errMss txnSum = 
+    where sumMsg :: Integer -> Text
+          sumMsg txnSum = 
             let ps = intercalate "\n" $ map (\p -> "  " ++ show p) postings
             in T.pack $ "txn " ++ show ident ++ " does not balance. Sum is " ++ show txnSum ++ "\n" ++ ps
+        
+          parentMsg :: [Posting] -> Text
+          parentMsg parents = 
+            let xs = T.intercalate "\n" $ map (\p -> "  " <> qnameToText (pAccount p)) parents
+            in "txn " <> T.pack (show ident) <> " has parent accounts\n" <> xs 
 
 validateTxns :: [QName] -> [Txn] -> Either Text [Txn]
 validateTxns knownQn txns = do
