@@ -4,6 +4,7 @@
         module Brightsidebudget.Journal.Account,
         module Brightsidebudget.Journal.Amount,
         module Brightsidebudget.Journal.Assertion,
+        module Brightsidebudget.Journal.BankImport,
         module Brightsidebudget.Journal.Budget,
         module Brightsidebudget.Journal.Calendar,
         module Brightsidebudget.Journal.Data,
@@ -16,6 +17,7 @@ import Brightsidebudget.Journal.ABalance
 import Brightsidebudget.Journal.Account
 import Brightsidebudget.Journal.Amount
 import Brightsidebudget.Journal.Assertion
+import Brightsidebudget.Journal.BankImport
 import Brightsidebudget.Journal.Budget
 import Brightsidebudget.Journal.Calendar
 import Brightsidebudget.Journal.Data

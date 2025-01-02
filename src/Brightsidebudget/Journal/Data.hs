@@ -20,7 +20,8 @@ module Brightsidebudget.Journal.Data
     CsvBudgetTarget(..),
     Journal(..),
     JLoadConfig(..),
-    JSaveConfig(..)
+    JSaveConfig(..),
+    BankCsv(..)
     ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -188,3 +189,17 @@ data JSaveConfig = JSaveConfig {
     jsTargets :: BudgetTarget -> FilePath,
     jsQnameLength :: QName -> Int
 }
+
+data BankCsv = BankCsv {
+    bcsvFile :: FilePath,
+    bcsvQname :: QName,
+    bcsvDateCol :: Text,
+    bcsvAmountCol :: Either Text (Text, Text),
+    bcsvStmtDescCols :: [Text],
+    bcsvStmtDateCol :: Maybe Text,
+    bcsvDelimiter :: Char,
+    bcsvRemoveDelimiterFrom :: [Text],
+    bcsvSkipFirstRow :: Bool,
+    bcsvEncoding :: String
+} deriving (Show, Eq)
+    
