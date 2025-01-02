@@ -100,7 +100,7 @@ instance ToNamedRecord CsvTxn where
         "No txn" .= ident, "Date" .= date, "Compte" .= acct, "Montant" .= amt,
         "Commentaire" .= cmt, stmt_desc .= sdesc, stmt_date .= sdate]
 instance DefaultOrdered CsvTxn where
-    headerOrder _ = header ["No txn", "Date", "Compte", "Montant", "Commentaire", stmt_desc, stmt_date]
+    headerOrder _ = header ["No txn", "Date", "Compte", "Montant", stmt_date, "Commentaire", stmt_desc]
 
 
 data AssertionType = BalanceAssertion Day
