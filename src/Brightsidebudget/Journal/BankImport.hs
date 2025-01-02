@@ -1,12 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Brightsidebudget.Journal.BankImport (
-    importBankPosting
+    importBankPosting,
+    createNewTxns,
 )
 where
 
 import Control.Monad.Except (ExceptT, liftEither)
 import Data.Text (Text)
+import Data.Maybe (mapMaybe)
 import Data.Time.Calendar (Day)
 import Data.Vector (Vector)
 import Data.Char (ord)
@@ -16,8 +18,9 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
+import qualified Data.Map.Strict as M
 import Brightsidebudget.Utils (loadFileEnc)
-import Brightsidebudget.Journal.Data (BankCsv(..), Posting(..), Amount)
+import Brightsidebudget.Journal.Data (BankCsv(..), Posting(..), Amount, QName, Txn(..), Journal(..))
 import Brightsidebudget.Journal.Calendar (dateAsDay)
 import Brightsidebudget.Journal.Amount (doubleToAmount)
 
@@ -96,3 +99,27 @@ createPosting bankCsv idxMap row = do
             case bcsvStmtDateCol bankCsv of
                 Just stmtDate -> getField stmtDate >>= dateAsDay >>= (pure . Just)
                 Nothing -> Right Nothing
+
+
+createNewTxns :: Journal -> ((Day, Posting) -> Maybe Txn) -> [(Day, Posting)] -> Day -> [Txn]
+createNewTxns j classifier ps onlyAfter = 
+    let dedupDict = buildDedupDict j
+        newPs = filter (\(d, _) -> d > onlyAfter) ps
+        (newPs', _) = foldr (\p (acc, dict) -> 
+            let key = (fst p, pAccount (snd p), pAmount (snd p), pStmtDesc (snd p))
+            in case M.lookup key dict of
+                Just count -> if count == 1
+                              then (acc, M.delete key dict)
+                              else (acc, M.insert key (count - 1) dict)
+                Nothing -> (p : acc, dict)
+            ) ([], dedupDict) newPs
+        acceptedTxns = mapMaybe (\p -> classifier p) newPs'
+        maxTxnId = maximum (map txnId (jTxns j))
+        newTxns = zipWith (\i t -> t {txnId = i}) [maxTxnId + 1..] acceptedTxns
+    in newTxns
+
+buildDedupDict :: Journal -> M.Map (Day, QName, Amount, Text) Int
+buildDedupDict j =
+    let ps = concatMap (\t -> map (\p -> (txnDate t, p)) (txnPostings t)) (jTxns j)
+        dedupDict = foldl (\acc (dt, p) -> M.insertWith (+) (dt, pAccount p, pAmount p, pStmtDesc p) 1 acc) M.empty ps
+    in dedupDict

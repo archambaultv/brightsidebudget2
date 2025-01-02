@@ -3,4 +3,4 @@ Date,Description,Category,Debit,Credit,Balance
 2021-01-05,"Electricity Inc","Utilities",50,0,3410
 2021-01-02,An unquoted, comma,"Debit transfert",1000,0,3460
 2021-01-02,"ABC Corp","Uncategorized",0,2000,4460
-2021-01-02,"Super marché âü","Food",40,0,2460
+2021-01-02,"Super marché","Food",40,0,2460
