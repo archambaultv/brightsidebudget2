@@ -8,7 +8,8 @@ module Brightsidebudget.Journal.Journal
         loadValidateAndCheckJournal,
         saveJournal,
         failedAssertions,
-        actualAssertionAmount
+        actualAssertionAmount,
+        lastAssertionDate,
 
     )
 where
@@ -16,7 +17,8 @@ where
 import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad (unless)
-import Data.Time.Calendar (addDays)
+import Data.List (sort)
+import Data.Time.Calendar (addDays, Day)
 import qualified Data.HashMap.Strict as HM
 import Control.Monad.Except (ExceptT, liftEither, throwError)
 import Brightsidebudget.Journal.Data (Journal(..), Account(..), JLoadConfig(..), JSaveConfig(..), WhichDate(..),
@@ -145,3 +147,19 @@ actualAssertionAmount balance (Assertion {baType = at, baAccount = acc}) =
             let m1 = aBalance balance acc (addDays (-1) d1)
                 m2 = aBalance balance acc d2
             in m2 - m1
+
+lastAssertionDate :: Journal -> QName -> Maybe Day
+lastAssertionDate j acc =
+    let as = (reverse . sort)
+           $ map maxDate
+           $ filter (\a -> baAccount a == acc)
+           $ jAssertions j
+    in case as of
+        [] -> Nothing
+        (x:_) -> Just x 
+
+    where maxDate :: Assertion -> Day
+          maxDate (Assertion {baType = at}) =
+              case at of
+                  BalanceAssertion d -> d
+                  FlowAssertion _ d -> d
