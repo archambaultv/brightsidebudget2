@@ -248,12 +248,20 @@ findSubset j acc target start end whichDate =
                                 TxnDate -> txnDate t
                                 StmtDate -> maybe (txnDate t) id $ pStmtDate p
 
--- Helper function to find all subsets of a list that sum to a given target
 subsetsSum :: Amount -> [(Txn, Posting)] -> Maybe [(Txn, Posting)]
-subsetsSum 0 _ = Just []
-subsetsSum _ [] = Nothing
-subsetsSum target (x:xs) = 
-    let amnt = pAmount $ snd x
-    in case subsetsSum (target - amnt) xs of
-            Just xs' -> Just $ x : xs'
-            Nothing -> subsetsSum target xs
+subsetsSum target xs =
+    let initialMap = HM.singleton 0 []
+    in go initialMap xs
+  where
+    go :: HM.HashMap Amount [(Txn, Posting)]  -> [(Txn, Posting)] -> Maybe [(Txn, Posting)]
+    go currentMap [] = HM.lookup target currentMap
+    go currentMap (x:rest) =
+      -- For each sum s we already have, attempt to form the new sum s + x
+      -- unless it's already in our map (to keep the map from exploding in size).
+      let xAmount = pAmount $ snd x
+          newPairs = [ (s + xAmount, x : subset) | (s, subset) <- HM.toList currentMap, not (HM.member (s + xAmount) currentMap)]
+          -- Insert all new sums into the map.
+          newMap = foldl (\acc (sumVal, sub) -> HM.insert sumVal sub acc) currentMap newPairs
+      in case HM.lookup target newMap of
+           Just found -> Just found   -- We found a subset summing to target
+           Nothing    -> go newMap rest
