@@ -93,7 +93,8 @@ saveBudgetTargetsMultipleFiles :: (BudgetTarget -> FilePath) -> [BudgetTarget] -
 saveBudgetTargetsMultipleFiles btFile targets = do
     let files = map btFile targets
     let filesTable = HM.fromListWith (++) $ zip files (map (:[]) targets)
-    mapM_ (\(file, xs) -> saveBudgetTargets file (sortBy (comparing btAccount) xs)) (HM.toList filesTable)
+    let ordFoo t = (btAccount t, btStart t)
+    mapM_ (\(file, xs) -> saveBudgetTargets file (sortBy (comparing ordFoo) (reverse xs))) (HM.toList filesTable)
 
 -- | Convert a budget target to a list of transactions, potentially infinite
 --   The other account is the account to which the amount is transferred

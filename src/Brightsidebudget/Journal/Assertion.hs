@@ -14,6 +14,8 @@ where
 import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad (unless)
+import Data.List (sortBy)
+import Data.Ord (comparing)
 import Data.Csv (decodeByName, encodeDefaultOrderedByNameWith)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map.Strict as M
@@ -72,8 +74,14 @@ loadAssertions filePath = do
 
 saveAssertions :: FilePath -> [Assertion] -> IO ()
 saveAssertions filePath assertions = do
-    let csvAssertions = map toCsvAssertion assertions
+    let ordFoo a = (getDate a, baAccount a)
+    let csvAssertions = map toCsvAssertion $ sortBy (comparing ordFoo) assertions
     BL.writeFile filePath $ encodeDefaultOrderedByNameWith csvEncodeOptions csvAssertions
+
+    where getDate (Assertion {baType = at}) = 
+            case at of
+                BalanceAssertion d -> d
+                FlowAssertion _ d2 -> d2
 
 showDate :: AssertionType -> Text
 showDate (BalanceAssertion d) = dayAsDate d
