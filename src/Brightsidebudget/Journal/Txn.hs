@@ -21,14 +21,14 @@ import Data.Foldable (traverse_)
 import qualified Data.Vector as V
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.HashMap.Strict as HM
-import Data.Csv (decodeByName, encodeDefaultOrderedByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByNameWith)
 import Control.Monad (unless, when)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
 import Brightsidebudget.Journal.Data (Txn(..), Posting(..), CsvTxn(..), QName)
 import Brightsidebudget.Journal.Account (validateQname, textToQname, shortNameOf, qnameToText, isParentOf)
 import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
 import Brightsidebudget.Journal.Calendar (dateAsDay, dayAsDate)
-import Brightsidebudget.Utils (loadFile)
+import Brightsidebudget.Utils (loadFile, csvEncodeOptions)
 
 fromCsvTxns :: [CsvTxn] -> Either Text [Txn]
 fromCsvTxns csvTnxs =
@@ -122,7 +122,7 @@ loadTxns fps = do
 saveTxns :: FilePath -> [Txn] -> IO ()
 saveTxns filePath txns = do
     let csvTxns = concatMap toCsvTxns txns
-    BL.writeFile filePath $ encodeDefaultOrderedByName csvTxns
+    BL.writeFile filePath $ encodeDefaultOrderedByNameWith csvEncodeOptions csvTxns
 
 saveTxnsMultipleFiles :: (Txn -> FilePath) -> [Txn] -> IO ()
 saveTxnsMultipleFiles txnFile txns = do

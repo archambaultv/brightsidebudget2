@@ -17,14 +17,14 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Data.List (sortBy)
 import Data.Ord (comparing)
-import Data.Csv (decodeByName, encodeDefaultOrderedByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByNameWith)
 import qualified Data.Vector as V
 import qualified Data.HashMap.Strict as HM
 import qualified Data.ByteString.Lazy as BL
 import Control.Monad (when)
 import Data.Time.Calendar (addDays, addGregorianMonthsClip, addGregorianYearsClip)
 import Control.Monad.Except (ExceptT, throwError, liftEither)
-import Brightsidebudget.Utils (loadFile)
+import Brightsidebudget.Utils (loadFile, csvEncodeOptions)
 import Brightsidebudget.Journal.Data (BudgetTarget(..), CsvBudgetTarget(..), BudgetFrequency(..), QName,
                                         Txn(..), Posting(..))
 import Brightsidebudget.Journal.Account (textToQname, validateQname, shortNameOf, qnameToText)
@@ -87,7 +87,7 @@ loadBudgetTargets fps = do
 saveBudgetTargets :: FilePath -> [BudgetTarget] -> IO ()
 saveBudgetTargets filePath budgetTargets = do
     let csvBudgetTargets = map toCsvBudgetTarget budgetTargets
-    BL.writeFile filePath $ encodeDefaultOrderedByName csvBudgetTargets
+    BL.writeFile filePath $ encodeDefaultOrderedByNameWith csvEncodeOptions csvBudgetTargets
 
 saveBudgetTargetsMultipleFiles :: (BudgetTarget -> FilePath) -> [BudgetTarget] -> IO ()
 saveBudgetTargetsMultipleFiles btFile targets = do

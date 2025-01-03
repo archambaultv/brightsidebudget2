@@ -31,9 +31,9 @@ import Control.Monad (unless)
 import Control.Monad.Except (ExceptT, throwError)
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import Data.Csv (decodeByName, encodeDefaultOrderedByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByNameWith)
 import Brightsidebudget.Journal.Data (QName, CsvAccount(..), Account(..))
-import Brightsidebudget.Utils (loadFile)
+import Brightsidebudget.Utils (loadFile, csvEncodeOptions)
 
 validateQname :: QName -> Either Text ()
 validateQname qn =
@@ -144,5 +144,5 @@ loadAccounts filePath = do
 saveAccounts :: FilePath -> [Account] -> IO ()
 saveAccounts filePath accs = do
     let csvAccs = map toCsvAccount accs
-    let csvData = encodeDefaultOrderedByName csvAccs
+    let csvData = encodeDefaultOrderedByNameWith csvEncodeOptions csvAccs
     BL.writeFile filePath csvData

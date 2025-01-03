@@ -4,6 +4,7 @@ module Brightsidebudget.Utils
     ( 
         loadFile,
         loadFileEnc,
+        csvEncodeOptions,
     )
 where
 
@@ -11,6 +12,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import System.Directory (doesFileExist)
 import Data.ByteString.Lazy (ByteString)
+import Data.Csv (EncodeOptions(..), defaultEncodeOptions)
 import qualified Data.ByteString.Lazy as BL
 import qualified Codec.Text.IConv as IConv
 import Control.Monad.IO.Class (liftIO)
@@ -31,3 +33,8 @@ loadFileEnc filePath enc = do
       rawContent <- BL.readFile filePath
       pure $ IConv.convert enc "UTF-8" rawContent
     else throwError $ T.concat(["The file ", T.pack filePath, " does not exist"])
+
+csvEncodeOptions :: EncodeOptions
+csvEncodeOptions = defaultEncodeOptions {
+    encUseCrLf = False
+    }

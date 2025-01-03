@@ -14,12 +14,12 @@ where
 import Data.Text (Text)
 import qualified Data.Text as T
 import Control.Monad (unless)
-import Data.Csv (decodeByName, encodeDefaultOrderedByName)
+import Data.Csv (decodeByName, encodeDefaultOrderedByNameWith)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map.Strict as M
 import qualified Data.Vector as V
 import Control.Monad.Except (ExceptT, throwError, liftEither)
-import Brightsidebudget.Utils (loadFile)
+import Brightsidebudget.Utils (loadFile, csvEncodeOptions)
 import Brightsidebudget.Journal.Data (Assertion(..), AssertionType(..), QName, CsvAssertion(..))
 import Brightsidebudget.Journal.Account (textToQname, validateQname, shortNameOf, qnameToText)
 import Brightsidebudget.Journal.Amount (doubleToAmount, amountToDouble)
@@ -73,7 +73,7 @@ loadAssertions filePath = do
 saveAssertions :: FilePath -> [Assertion] -> IO ()
 saveAssertions filePath assertions = do
     let csvAssertions = map toCsvAssertion assertions
-    BL.writeFile filePath $ encodeDefaultOrderedByName csvAssertions
+    BL.writeFile filePath $ encodeDefaultOrderedByNameWith csvEncodeOptions csvAssertions
 
 showDate :: AssertionType -> Text
 showDate (BalanceAssertion d) = dayAsDate d
