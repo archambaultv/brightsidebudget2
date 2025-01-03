@@ -1,7 +1,8 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TupleSections #-}
 
 module Brightsidebudget.Journal.Journal
     ( 
+        jBalanceMap,
         loadJournal,
         validateJournal,
         loadAndValidateJournal,
@@ -10,15 +11,18 @@ module Brightsidebudget.Journal.Journal
         failedAssertions,
         actualAssertionAmount,
         lastAssertionDate,
+        fixStmtDate,
         addTxns,
+        updateTxns,
         nextTxnId
     )
 where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Control.Monad (unless)
-import Data.List (sort)
+import Control.Monad (unless, foldM)
+import Data.List (sort, groupBy, sortBy)
+import Data.Ord (comparing)
 import Data.Time.Calendar (addDays, Day)
 import qualified Data.HashMap.Strict as HM
 import Control.Monad.Except (ExceptT, liftEither, throwError)
@@ -26,7 +30,7 @@ import Brightsidebudget.Journal.Data (Journal(..), Account(..), JLoadConfig(..),
                              ABalance, Assertion(..), Amount, AssertionType(..), QName, Txn(..), Posting(..),
                              BudgetTarget(..))
 import Brightsidebudget.Journal.Account (loadAccounts, validateAccounts, saveAccounts, toShortNames, qnameToText)
-import Brightsidebudget.Journal.Txn (loadTxns, validateTxns, saveTxnsMultipleFiles)
+import Brightsidebudget.Journal.Txn (loadTxns, validateTxns, saveTxnsMultipleFiles, updatePostings)
 import Brightsidebudget.Journal.Assertion (loadAssertions, validateAssertions, saveAssertions, showDate)
 import Brightsidebudget.Journal.Budget (loadBudgetTargets, validateBudgetTargets, saveBudgetTargetsMultipleFiles)
 import Brightsidebudget.Journal.ABalance (aBalanceMapTxn, aBalance)
@@ -92,6 +96,10 @@ saveJournal journalConfig j =
             unless (null as) (saveAssertions (jsAssertions journalConfig) as)
             let ts = jTargets journal
             unless (null ts) (saveBudgetTargetsMultipleFiles (jsTargets journalConfig) ts)
+
+-- | Return the balance map
+jBalanceMap :: Journal -> WhichDate -> ABalance
+jBalanceMap j wd = aBalanceMapTxn wd (Just (map aName $ jAccounts j)) (jTxns j)
 
 -- | Shorten the qname of the journal for txns, assertions, and targets
 shortQnameJournal :: (QName -> Int) -> Journal -> Journal
@@ -179,3 +187,73 @@ addTxns j txns =
     in do
         txns3 <- validateTxns fullQn txns2
         pure (txns3, j{ jTxns = jTxns j ++ txns3 })
+
+-- | Replace the txns in the Journal by those in the list, matching on txnId
+updateTxns :: Journal -> [Txn] -> Either Text Journal
+updateTxns j ls =
+    let txnsMap = HM.fromList [(txnId t, t) | t <- jTxns j]
+        fullQn = fmap aName (jAccounts j)
+        foo m t =
+            case HM.lookup (txnId t) m of
+                Nothing -> Left $ "Txn id" <> (T.pack $ show $ txnId t) <> " not found"
+                Just _ -> pure $ HM.adjust (const t) (txnId t) m
+    in do
+        ls' <- validateTxns fullQn ls
+        txnsMap' <- foldM foo txnsMap ls'
+        let txns = map snd $ HM.toList txnsMap'
+        pure j{jTxns = txns}
+
+-- | Tries to satisfy the balance assertion by shifting some statement date
+-- after the balance assertion date
+fixStmtDate :: Journal -> Integer -> ABalance -> Assertion -> Maybe Journal
+fixStmtDate j maxDays balanceMap ba =
+    let actual = actualAssertionAmount balanceMap ba
+        target = actual - baAmount ba
+        end = case baType ba of
+                BalanceAssertion d -> d
+                FlowAssertion _ d -> d
+        start = addDays (-maxDays) end
+        subset :: Maybe [(Txn, Posting)]
+        subset = findSubset j (baAccount ba) target start end StmtDate
+        regroup :: [(Txn, Posting)] -> [(Txn, [Posting])]
+        regroup xs = 
+            let 
+                xs1 :: [(Txn, Posting)]
+                xs1 = sortBy (comparing (txnId . fst)) xs
+                xs2 :: [[(Txn, Posting)]]
+                xs2 = groupBy (\a b -> txnId (fst a) == txnId (fst b)) xs1
+                foo :: [(Txn, Posting)] -> (Txn, [Posting])
+                foo [] = error "Impossible"
+                foo ls@((t,_) : _) = (t, map snd ls)
+            in map foo xs2
+        newPs :: (Txn, [Posting]) -> (Txn, [(Posting, Posting)])
+        newPs (t, xs) = (t, map (\p -> (p, p{pStmtDate = Just $ addDays 1 end})) xs)
+        upTxns ::  (Txn, [(Posting, Posting)]) -> Txn
+        upTxns (t, xs) = updatePostings t xs
+        newTxns :: [(Txn, Posting)] -> [Txn]
+        newTxns xs = map (upTxns . newPs) $ regroup xs
+        updateJ :: [(Txn, Posting)] -> Maybe Journal
+        updateJ xs = either (const Nothing) pure $ updateTxns j (newTxns xs)
+    in subset >>= updateJ
+
+findSubset :: Journal -> QName -> Integer -> Day -> Day -> WhichDate -> Maybe [(Txn, Posting)]
+findSubset j acc target start end whichDate =
+    let ps :: [(Txn, Posting)]
+        ps = filter (\x -> getDate x >= start && getDate x <= end)
+           $ filter (\(_, p) -> pAccount p == acc)
+           $ concatMap (\t -> map (t,) (txnPostings t)) (jTxns j)
+    in subsetsSum target ps
+    where getDate :: (Txn, Posting) -> Day
+          getDate (t, p) = case whichDate of
+                                TxnDate -> txnDate t
+                                StmtDate -> maybe (txnDate t) id $ pStmtDate p
+
+-- Helper function to find all subsets of a list that sum to a given target
+subsetsSum :: Amount -> [(Txn, Posting)] -> Maybe [(Txn, Posting)]
+subsetsSum 0 _ = Just []
+subsetsSum _ [] = Nothing
+subsetsSum target (x:xs) = 
+    let amnt = pAmount $ snd x
+    in case subsetsSum (target - amnt) xs of
+            Just xs' -> Just $ x : xs'
+            Nothing -> subsetsSum target xs

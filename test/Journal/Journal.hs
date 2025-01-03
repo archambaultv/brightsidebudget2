@@ -14,7 +14,8 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Except (runExceptT, liftEither, ExceptT)
 import Brightsidebudget.Journal (JLoadConfig(..), Journal(..), Txn(..), Posting(..), QName,
     loadJournal, validateJournal, saveJournal, JSaveConfig(..), loadAndValidateJournal, failedAssertions,
-    toShortNames, Account(..), loadValidateAndCheckJournal)
+    toShortNames, Account(..), loadValidateAndCheckJournal, Assertion(..), AssertionType(..))
+import qualified Brightsidebudget.Journal as J
 
 myRunExceptT :: (Show e) => ExceptT e IO a -> IO ()
 myRunExceptT m = do
@@ -34,7 +35,8 @@ journalTests = testGroup "Journal" [
                     txnTest1,
                     assertionsTest1,
                     assertionsTest2,
-                    assertionsTest3
+                    assertionsTest3,
+                    fixStmtDateTest
                     ]
 
 qNameLength :: QName -> Int
@@ -149,3 +151,22 @@ toShortNamesTest = testCase "toShortNames" $ myRunExceptT $ do
     liftIO $ assertEqual "toShortNames" 17 (length accs)
     liftIO $ assertEqual "toShortNames" ("Actifs" :| []) (accs !! 0)
     liftIO $ assertEqual "toShortNames" ("Compte courant" :| []) (accs !! 1)
+
+-- | Test fixStmtDate
+fixStmtDateTest :: TestTree
+fixStmtDateTest = testCase "fixStmtDate" $ myRunExceptT $ do
+    j <- loadAndValidateJournal config
+    let ba = Assertion {baType = BalanceAssertion (read "2021-01-02"),
+                        baAccount = ("Actifs" :| ["Compte courant"]),
+                        baAmount = 250001,
+                        baComment = ""}
+        j2 = j{jAssertions = [ba]}
+        balance = J.jBalanceMap j2 J.StmtDate
+    case J.fixStmtDate j 10 balance ba of
+        Nothing -> liftIO $ assertFailure "Should have fixed date"
+        Just fixJ -> 
+            let t = jTxns fixJ !! 1
+                p = txnPostings t !! 1
+            in do
+                liftIO $ assertEqual "Account" "Actifs:Compte courant" (J.qnameToText $ pAccount p)
+                liftIO $ assertEqual "Fixed date" (Just (read "2021-01-03")) (pStmtDate p)

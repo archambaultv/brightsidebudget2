@@ -8,13 +8,14 @@ module Brightsidebudget.Journal.Txn
     validateTxns,
     loadTxns,
     saveTxns,
-    saveTxnsMultipleFiles
+    saveTxnsMultipleFiles,
+    updatePostings
 )
 where
 
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.List (groupBy, sortBy, intercalate)
+import Data.List (groupBy, sortBy, intercalate, find)
 import Data.Ord (comparing)
 import Data.Foldable (traverse_)
 import qualified Data.Vector as V
@@ -128,3 +129,9 @@ saveTxnsMultipleFiles txnFile txns = do
     let files = map txnFile txns
     let filesTable = HM.fromListWith (++) $ zip files (map (:[]) txns)
     mapM_ (\(file, xs) -> saveTxns file (sortBy (comparing txnId) xs)) (HM.toList filesTable)
+
+updatePostings :: Txn -> [(Posting, Posting)] -> Txn
+updatePostings t oldNew =
+    let update p =  maybe p snd $ find (\(old, _) -> old == p) oldNew
+        ps' = map (\p -> update p) $ txnPostings t
+    in t { txnPostings = ps' }
