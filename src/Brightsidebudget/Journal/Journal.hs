@@ -239,7 +239,9 @@ fixStmtDate j maxDays balanceMap ba =
 findSubset :: Journal -> QName -> Integer -> Day -> Day -> WhichDate -> Maybe [(Txn, Posting)]
 findSubset j acc target start end whichDate =
     let ps :: [(Txn, Posting)]
-        ps = filter (\x -> getDate x >= start && getDate x <= end)
+        ps = reverse
+           $ sortBy (comparing getDate)
+           $ filter (\x -> getDate x >= start && getDate x <= end)
            $ filter (\(_, p) -> pAccount p == acc)
            $ concatMap (\t -> map (t,) (txnPostings t)) (jTxns j)
     in subsetsSum target ps
