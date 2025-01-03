@@ -20,7 +20,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
 import qualified Data.Map.Strict as M
 import Brightsidebudget.Utils (loadFileEnc)
-import Brightsidebudget.Journal.Data (BankCsv(..), Posting(..), Amount, QName, Txn(..), Journal(..))
+import Brightsidebudget.Journal.Data (BankCsv(..), Posting(..), Amount, QName, Txn(..), Journal(..), Classifier)
 import Brightsidebudget.Journal.Calendar (dateAsDay)
 import Brightsidebudget.Journal.Amount (doubleToAmount)
 import Brightsidebudget.Journal.Journal (nextTxnId)
@@ -102,9 +102,9 @@ createPosting bankCsv idxMap row = do
                 Nothing -> Right Nothing
 
 
-createNewTxns :: Journal -> ((Day, Posting) -> Maybe Txn) -> [(Day, Posting)] -> Day -> [Txn]
-createNewTxns j classifier ps onlyAfter = 
-    let dedupDict = buildDedupDict j
+createNewTxns :: Journal -> (QName -> QName) -> Classifier -> [(Day, Posting)] -> Day -> [Txn]
+createNewTxns j toRealAccount classifier ps onlyAfter = 
+    let dedupDict = buildDedupDict j toRealAccount
         newPs = filter (\(d, _) -> d > onlyAfter) ps
         (newPs', _) = foldr (\p (acc, dict) -> 
             let key = (fst p, pAccount (snd p), pAmount (snd p), pStmtDesc (snd p))
@@ -119,8 +119,9 @@ createNewTxns j classifier ps onlyAfter =
         newTxns = zipWith (\i t -> t {txnId = i}) [maxTxnId + 1..] acceptedTxns
     in newTxns
 
-buildDedupDict :: Journal -> M.Map (Day, QName, Amount, Text) Int
-buildDedupDict j =
+buildDedupDict :: Journal -> (QName -> QName) -> M.Map (Day, QName, Amount, Text) Int
+buildDedupDict j toRealAccount =
     let ps = concatMap (\t -> map (\p -> (txnDate t, p)) (txnPostings t)) (jTxns j)
-        dedupDict = foldl (\acc (dt, p) -> M.insertWith (+) (dt, pAccount p, pAmount p, pStmtDesc p) 1 acc) M.empty ps
+        dedupDict = foldl (\acc (dt, p) -> M.insertWith (+) (dt, toRealAccount $ pAccount p, pAmount p, pStmtDesc p) 1 acc) 
+                    M.empty ps
     in dedupDict

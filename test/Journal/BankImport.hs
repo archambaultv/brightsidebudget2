@@ -50,5 +50,5 @@ createNewTxns :: TestTree
 createNewTxns = testCase "createNewTxns" $ myRunExceptT $ do
     bankPS <- J.importBankPosting bankConfig
     j <- J.loadAndValidateJournal config
-    let txns = J.createNewTxns j classifier bankPS (read "2020-12-31")
+    let txns = J.createNewTxns j id classifier bankPS (read "2020-12-31")
     liftIO $ assertEqual "Nb of txns" 4 (length txns)

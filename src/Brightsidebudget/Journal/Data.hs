@@ -21,7 +21,8 @@ module Brightsidebudget.Journal.Data
     Journal(..),
     JLoadConfig(..),
     JSaveConfig(..),
-    BankCsv(..)
+    BankCsv(..),
+    Classifier
     ) where
 
 import Data.List.NonEmpty (NonEmpty)
@@ -202,4 +203,5 @@ data BankCsv = BankCsv {
     bcsvSkipFirstRow :: Bool,
     bcsvEncoding :: String
 } deriving (Show, Eq)
-    
+
+type Classifier = (Day, Posting) -> Maybe Txn
