@@ -128,7 +128,8 @@ saveTxnsMultipleFiles :: (Txn -> FilePath) -> [Txn] -> IO ()
 saveTxnsMultipleFiles txnFile txns = do
     let files = map txnFile txns
     let filesTable = HM.fromListWith (++) $ zip files (map (:[]) txns)
-    mapM_ (\(file, xs) -> saveTxns file (sortBy (comparing txnId) xs)) (HM.toList filesTable)
+    let ordFoo t = (txnDate t, txnId t)
+    mapM_ (\(file, xs) -> saveTxns file (sortBy (comparing ordFoo) xs)) (HM.toList filesTable)
 
 updatePostings :: Txn -> [(Posting, Posting)] -> Txn
 updatePostings t oldNew =
