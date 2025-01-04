@@ -8,6 +8,7 @@ module Brightsidebudget.Journal.Journal
         loadAndValidateJournal,
         loadValidateAndCheckJournal,
         saveJournal,
+        checkAssertions,
         failedAssertions,
         actualAssertionAmount,
         lastAssertionDate,
@@ -61,8 +62,10 @@ loadAndValidateJournal config = loadJournal config >>= liftEither . validateJour
 
 -- | Load and validate a journal from a configuration, and check the assertions
 loadValidateAndCheckJournal :: JLoadConfig -> ExceptT Text IO Journal
-loadValidateAndCheckJournal config = do
-    journal <- loadAndValidateJournal config
+loadValidateAndCheckJournal config = loadJournal config >>= liftEither . validateJournal >>= liftEither .checkAssertions
+
+checkAssertions :: Journal -> Either Text Journal
+checkAssertions journal = do
     let (bMap, errors) = failedAssertions journal
     if null errors
         then pure journal
